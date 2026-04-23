@@ -1,0 +1,45 @@
+{
+  "name": "cardboard",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@tiptap/extension-code-block-lowlight": "^3.22.4",
+    "@tiptap/extension-color": "^3.22.4",
+    "@tiptap/extension-highlight": "^3.22.4",
+    "@tiptap/extension-image": "^3.22.4",
+    "@tiptap/extension-link": "^3.22.4",
+    "@tiptap/extension-placeholder": "^3.22.4",
+    "@tiptap/extension-text-align": "^3.22.4",
+    "@tiptap/extension-text-style": "^3.22.4",
+    "@tiptap/extension-underline": "^3.22.4",
+    "@tiptap/pm": "^3.22.4",
+    "@tiptap/react": "^3.22.4",
+    "@tiptap/starter-kit": "^3.22.4",
+    "better-sqlite3": "^12.9.0",
+    "date-fns": "^4.1.0",
+    "html2canvas": "^1.4.1",
+    "lucide-react": "^1.8.0",
+    "next": "16.2.4",
+    "pdfjs-dist": "^5.6.205",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-pdf": "^10.4.1",
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "typescript": "^5"
+  }
+}
