@@ -133,6 +133,31 @@ export default function Home() {
     [allCards, matchesSearch, selectedTagKeys]
   );
 
+  const getNextWorkspaceGridSpot = useCallback(() => {
+    const CELL_W = 330;
+    const CELL_H = 240;
+    const START_X = 120;
+    const START_Y = 120;
+    const cols = Math.max(
+      3,
+      Math.floor((typeof window !== 'undefined' ? window.innerWidth * 1.8 : 1600) / CELL_W)
+    );
+    const occupied = new Set(
+      cards
+        .filter(c => c.boardId === activeBoardId)
+        .map(c => `${Math.round((c.x - START_X) / CELL_W)}:${Math.round((c.y - START_Y) / CELL_H)}`)
+    );
+    for (let i = 0; i < 500; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const key = `${col}:${row}`;
+      if (!occupied.has(key)) {
+        return { x: START_X + col * CELL_W, y: START_Y + row * CELL_H };
+      }
+    }
+    return { x: START_X, y: START_Y };
+  }, [cards, activeBoardId]);
+
   const toggleTagKey = useCallback((key: string) => {
     setSelectedTagKeys(prev =>
       prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
@@ -329,7 +354,7 @@ export default function Home() {
       >
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>📋</div>
-          <div style={{ fontSize: 18, fontWeight: 600 }}>Loading CardBoard...</div>
+          <div style={{ fontSize: 18, fontWeight: 600 }}>Loading CardCanvas...</div>
         </div>
       </div>
     );
@@ -374,7 +399,8 @@ export default function Home() {
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onAddCard={type => {
             if (type === 'richtext') {
-              createCard(type, 200 + Math.random() * 300, 200 + Math.random() * 200);
+              const pos = getNextWorkspaceGridSpot();
+              createCard(type, pos.x, pos.y);
             } else {
               setMediaModalOpen(true);
             }
@@ -435,7 +461,8 @@ export default function Home() {
         open={mediaModalOpen}
         onClose={() => setMediaModalOpen(false)}
         onConfirm={(u, mime) => {
-          createCard(inferMediaType(u, mime), 200, 200, u);
+          const pos = getNextWorkspaceGridSpot();
+          createCard(inferMediaType(u, mime), pos.x, pos.y, u);
         }}
       />
     </div>

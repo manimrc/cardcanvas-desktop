@@ -36,7 +36,7 @@ export default function Sidebar(props: Props) {
     <aside className={`sidebar${props.collapsed ? ' collapsed' : ''}`}>
       <div className="sidebar-header">
         <div className="logo-icon">📋</div>
-        <span className="logo">CardBoard</span>
+        <span className="logo">CardCanvas</span>
         <div style={{ flex: 1 }} />
         <button
           type="button"

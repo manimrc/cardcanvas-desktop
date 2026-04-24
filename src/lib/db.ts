@@ -123,8 +123,8 @@ function initializeDatabase(db: Database.Database) {
       VALUES (?, ?, 'richtext', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       welcomeCardId, boardId,
-      'Welcome to CardBoard! 🎉',
-      '<h2>Welcome to CardBoard!</h2><p>Double-click this card to edit it. Right-click the canvas to add new cards.</p><p><strong>Card Types:</strong></p><ul><li>📝 Rich Text</li><li>🔗 Links</li><li>🖼️ Images</li><li>📄 PDFs</li><li>📰 Clipped Articles</li></ul>',
+      'Welcome to CardCanvas! 🎉',
+      '<h2>Welcome to CardCanvas!</h2><p>Double-click this card to edit it. Right-click the canvas to add new cards.</p><p><strong>Card Types:</strong></p><ul><li>📝 Rich Text</li><li>🔗 Links</li><li>🖼️ Images</li><li>📄 PDFs</li><li>📰 Clipped Articles</li></ul>',
       '#E3F2FD',
       200, 150, 340, 280, 1, now, now
     );

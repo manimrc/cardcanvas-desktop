@@ -1,6 +1,6 @@
-# CardBoard
+# CardCanvas
 
-CardBoard is a self-hosted visual workspace where you organize notes, links, images, and PDFs as draggable cards.
+CardCanvas is a self-hosted visual workspace where you organize notes, links, images, and PDFs as draggable cards.
 It is designed for personal research, ideation, and planning with local-first persistence (SQLite).
 
 ## What You Get
@@ -96,7 +96,7 @@ docker compose down
 
 ### Data Persistence
 
-- `docker-compose.yml` mounts `/app/data` to volume `cardboard-data`
+- `docker-compose.yml` mounts `/app/data` to volume `cardcanvas-data`
 - your SQLite DB survives container restarts/rebuilds
 
 ## Dockerfile Review
@@ -178,7 +178,7 @@ cardboard/
 - Blank UI after major updates:
   - restart dev server and hard refresh browser
 - Docker container starts but no data persists:
-  - verify `cardboard-data` volume exists (`docker volume ls`)
+  - verify `cardcanvas-data` volume exists (`docker volume ls`)
 
 ## License
 
