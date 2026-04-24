@@ -39,7 +39,7 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
   const [showImageInput, setShowImageInput] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [url, setUrl] = useState(card.url || '');
-  const [tags, setTags] = useState(card.tags || []);
+  const [tagsInput, setTagsInput] = useState((card.tags || []).join(', '));
   const [isEditing, setIsEditing] = useState(!card.url && (card.type === 'pdf' || card.type === 'image'));
 
   const editor = useEditor({
@@ -60,16 +60,20 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
   });
 
   const handleSave = useCallback(() => {
+    const parsedTags = tagsInput
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean);
     onSave({
       id: card.id,
       title,
       content: editor?.getHTML() || '',
       color,
       url,
-      tags,
+      tags: parsedTags,
     });
     onClose();
-  }, [card.id, title, color, url, tags, editor, onSave, onClose]);
+  }, [card.id, title, color, url, tagsInput, editor, onSave, onClose]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -183,7 +187,28 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
               {title || 'Untitled'}
             </div>
           )}
-          <button className="editor-close-btn" onClick={onClose}><X size={16} /></button>
+          <div className="editor-top-actions">
+            {isEditing ? (
+              <>
+                <div className="editor-top-color-picker">
+                  {CARD_COLORS.map(c => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      className={`editor-top-color-dot${color === c.value ? ' active' : ''}`}
+                      style={{ background: c.value }}
+                      onClick={() => setColor(c.value)}
+                      title={c.name}
+                    />
+                  ))}
+                </div>
+                <button className="editor-top-action-btn" onClick={handleSave}>Save Changes</button>
+              </>
+            ) : (
+              <button className="editor-top-action-btn" onClick={() => setIsEditing(true)}>Edit Card</button>
+            )}
+            <button className="editor-close-btn" onClick={onClose}><X size={16} /></button>
+          </div>
         </div>
 
         {isEditing && card.type !== 'richtext' && (
@@ -213,8 +238,8 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>TAGS (COMMA SEPARATED)</label>
             <input
               className="inline-input"
-              value={tags.join(', ')}
-              onChange={e => setTags(e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
+              value={tagsInput}
+              onChange={e => setTagsInput(e.target.value)}
               placeholder="e.g. urgent, research, draft"
             />
           </div>
@@ -268,31 +293,6 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
           <EditorContent editor={editor} />
         </div>
 
-        <div className="editor-footer">
-          {isEditing ? (
-            <>
-              <div className="editor-color-picker">
-                {CARD_COLORS.map(c => (
-                  <div
-                    key={c.value}
-                    className={`color-dot${color === c.value ? ' active' : ''}`}
-                    style={{ background: c.value }}
-                    onClick={() => setColor(c.value)}
-                    title={c.name}
-                  />
-                ))}
-              </div>
-              <button className="editor-save-btn" onClick={handleSave}>Save Changes</button>
-            </>
-          ) : (
-            <>
-              <div />
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="editor-save-btn" onClick={() => setIsEditing(true)}>Edit Card</button>
-              </div>
-            </>
-          )}
-        </div>
       </div>
     </div>
   );

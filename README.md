@@ -1,172 +1,185 @@
-# 📋 CardBoard
+# CardBoard
 
-> A self-hosted, open-source infinite whiteboard where every sticky note is a **Card**.
+CardBoard is a self-hosted visual workspace where you organize notes, links, images, and PDFs as draggable cards.
+It is designed for personal research, ideation, and planning with local-first persistence (SQLite).
 
-![CardBoard](https://img.shields.io/badge/CardBoard-Infinite%20Whiteboard-7c5cfc?style=for-the-badge)
-![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)
-![SQLite](https://img.shields.io/badge/SQLite-Local%20Storage-003B57?style=flat-square&logo=sqlite)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)
+## What You Get
 
-## ✨ Features
+- Infinite board-style workspace (per board)
+- Rich text cards with TipTap formatting
+- Link, image, and PDF cards
+- Global **Tags mode**:
+  - combines cards from all boards
+  - filter by one or many hashtags
+  - uniform grid layout for quick scanning
+- Sidebar workspace tree (folders -> boards)
+- Theme toggle (dark/light)
+- Board snapshot download (PNG)
+- Docker and local development support
 
-- **Infinite Canvas** — Pan, zoom, and organize cards freely on an endless whiteboard
-- **Multiple Card Types** — Rich text, links, images, PDFs, and clipped articles
-- **Rich Text Editor** — Full TipTap editor with formatting, headings, lists, links, images, and code blocks
-- **PDF Viewer** — Dedicated viewer for PDF cards
-- **Folder & Board Organization** — Hierarchical folder/file tree in the sidebar
-- **Calendar Widget** — Built-in calendar in the sidebar
-- **Local SQLite Database** — All data stored locally, no external services needed
-- **Docker Deployable** — Single command deployment with persistent data
+## Tech Stack
 
-## 🛠️ Tech Stack
+- Next.js (App Router)
+- React + TypeScript
+- TipTap editor
+- SQLite (`better-sqlite3`)
+- Vanilla CSS
 
-| Layer | Technology |
-|-------|------------|
-| Framework | Next.js 15 (App Router) |
-| Editor | TipTap (rich text) |
-| Canvas | Custom React infinite canvas |
-| Database | SQLite via better-sqlite3 |
-| Styling | Vanilla CSS (dark theme) |
-| Icons | Lucide React |
-| Deployment | Docker / Docker Compose |
+## Prerequisites
 
-## 🚀 Quick Start
+For local development:
 
-### Prerequisites
+- Node.js 20+ recommended
+- npm
 
-- **Node.js** 18+ and **npm**
-- **Docker** (optional, for containerized deployment)
+For container deployment:
 
-### Local Development
+- Docker
+- Docker Compose
+
+## Local Setup (Beginner Friendly)
+
+1) Clone the repository and open the project:
 
 ```bash
-# 1. Clone and navigate to the project
+git clone <your-repo-url>
 cd cardboard
+```
 
-# 2. Install dependencies
+2) Install dependencies:
+
+```bash
 npm install
+```
 
-# 3. Start the development server
+3) Start the development server:
+
+```bash
 npm run dev
-
-# 4. Open in browser
-open http://localhost:3000
 ```
 
-### Docker Deployment (Single Command)
+4) Open the app in your browser:
+
+- [http://localhost:3000](http://localhost:3000)
+
+5) First run behavior:
+
+- SQLite file is created automatically under `data/cardboard.db`
+- default folder/board/sample cards are seeded if the DB is empty
+
+## Production Build (Without Docker)
 
 ```bash
-# Build and run with Docker Compose
-docker compose up -d
-
-# App is now running at http://localhost:3000
-# Data persists in a Docker volume (cardboard-data)
+npm run build
+npm start
 ```
 
-To stop:
-```bash
-docker compose down
-```
+App runs on port `3000` by default.
 
-To rebuild after changes:
+## Docker Setup
+
+### Quick Start
+
 ```bash
 docker compose up -d --build
 ```
 
-## 📖 Usage Guide
+Then open:
 
-### Canvas Navigation
-- **Pan**: Click and drag on empty canvas space
-- **Zoom**: Scroll wheel or pinch gesture
-- **Double-click canvas**: Create a new rich text card
+- [http://localhost:3000](http://localhost:3000)
 
-### Card Management
-- **Right-click canvas**: Context menu to create cards of any type
-- **Double-click card**: Open the rich text editor
-- **Drag cards**: Click and drag to reposition
-- **Resize**: Drag the bottom-right corner handle
-- **Right-click card**: Edit, reorder, or delete
+### Stop
 
-### Sidebar
-- **Calendar**: Navigate months, today is highlighted
-- **File Tree**: Create folders, boards, rename, and delete
-- **Click a board**: Switch to that board's canvas
-
-### Rich Text Editor
-- Full formatting toolbar: bold, italic, underline, strikethrough, highlight
-- Headings (H1, H2, H3), bullet/ordered lists, blockquotes, code blocks
-- Insert links and images
-- Text alignment controls
-- Color picker for card background
-- **Ctrl/Cmd + S**: Quick save
-- **Escape**: Close editor
-
-## 📁 Project Structure
-
+```bash
+docker compose down
 ```
+
+### Data Persistence
+
+- `docker-compose.yml` mounts `/app/data` to volume `cardboard-data`
+- your SQLite DB survives container restarts/rebuilds
+
+## Dockerfile Review
+
+The current Dockerfile is production-ready and improved for size and reliability:
+
+- Multi-stage build (`deps`, `builder`, `prod-deps`, `runner`)
+- Native build tools installed where needed for `better-sqlite3`
+- Final runtime image includes:
+  - production `node_modules` only
+  - built `.next` output
+  - `public`
+- `NODE_ENV=production` and exposed `3000`
+
+This is a solid baseline for self-hosted deployment.
+
+## Common Commands
+
+```bash
+npm run dev      # start dev server
+npm run build    # production build
+npm start        # run production server
+npm run lint     # lint project
+```
+
+## Project Structure
+
+```text
 cardboard/
 ├── src/
 │   ├── app/
-│   │   ├── api/
-│   │   │   ├── boards/route.ts    # Board CRUD API
-│   │   │   ├── cards/route.ts     # Card CRUD API
-│   │   │   ├── folders/route.ts   # Folder CRUD API
-│   │   │   └── upload/route.ts    # File upload API
-│   │   ├── globals.css            # Complete design system
-│   │   ├── layout.tsx             # Root layout
-│   │   └── page.tsx               # Main app page
+│   │   ├── api/                # boards, folders, cards, uploads
+│   │   ├── globals.css
+│   │   └── page.tsx            # main app shell
 │   ├── components/
 │   │   ├── Canvas/
-│   │   │   ├── CanvasCard.tsx     # Individual card component
-│   │   │   └── InfiniteCanvas.tsx # Pan/zoom canvas
 │   │   ├── Editor/
-│   │   │   └── RichTextEditor.tsx # TipTap editor modal
 │   │   ├── Sidebar/
-│   │   │   ├── Calendar.tsx       # Calendar widget
-│   │   │   ├── FileTree.tsx       # Folder/board tree
-│   │   │   └── Sidebar.tsx        # Sidebar container
 │   │   ├── Toolbar/
-│   │   │   └── Toolbar.tsx        # Top toolbar
-│   │   ├── ContextMenu.tsx        # Right-click menu
-│   │   └── PDFViewer.tsx          # PDF viewer modal
+│   │   └── AddMediaModal.tsx
 │   ├── lib/
-│   │   └── db.ts                  # SQLite database setup
+│   │   ├── db.ts
+│   │   ├── hashtags.ts
+│   │   └── mediaType.ts
 │   └── types/
-│       └── index.ts               # TypeScript interfaces
-├── data/                          # SQLite database (auto-created)
-├── Dockerfile                     # Production Docker build
-├── docker-compose.yml             # Single-command deployment
-└── package.json
+├── data/                        # sqlite db folder
+├── Dockerfile
+├── docker-compose.yml
+└── README.md
 ```
 
-## 🗄️ Database Schema
+## API Endpoints
 
-| Table | Description |
-|-------|-------------|
-| `folders` | Hierarchical folder organization |
-| `boards` | Whiteboards belonging to folders |
-| `cards` | Cards with type, content, position, and styling |
-| `uploads` | Binary file storage for images and PDFs |
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/folders` | list folders + boards |
+| POST | `/api/folders` | create folder |
+| PUT | `/api/folders` | rename folder |
+| DELETE | `/api/folders?id=` | delete folder |
+| GET | `/api/boards` | list/get boards |
+| POST | `/api/boards` | create board |
+| PUT | `/api/boards` | rename board |
+| DELETE | `/api/boards?id=` | delete board |
+| GET | `/api/cards?boardId=` | list cards in one board |
+| GET | `/api/cards?all=1` | list cards across all boards |
+| POST | `/api/cards` | create card |
+| PUT | `/api/cards` | update card |
+| DELETE | `/api/cards?id=` | delete card |
+| POST | `/api/upload` | upload file (image/pdf) |
+| GET | `/api/upload?id=` | read uploaded file |
 
-## 📝 API Endpoints
+## Troubleshooting
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/folders` | List all folders and boards |
-| POST | `/api/folders` | Create a folder |
-| PUT | `/api/folders` | Rename a folder |
-| DELETE | `/api/folders?id=` | Delete a folder |
-| GET | `/api/boards` | List/get boards |
-| POST | `/api/boards` | Create a board |
-| PUT | `/api/boards` | Rename a board |
-| DELETE | `/api/boards?id=` | Delete a board |
-| GET | `/api/cards?boardId=` | Get cards for a board |
-| POST | `/api/cards` | Create a card |
-| PUT | `/api/cards` | Update a card |
-| DELETE | `/api/cards?id=` | Delete a card |
-| POST | `/api/upload` | Upload a file |
-| GET | `/api/upload?id=` | Retrieve a file |
+- Build fails on native sqlite dependency:
+  - ensure Node version is modern (20+)
+  - run `rm -rf node_modules package-lock.json && npm install`
+- Port 3000 busy:
+  - run on another port: `PORT=3001 npm run dev`
+- Blank UI after major updates:
+  - restart dev server and hard refresh browser
+- Docker container starts but no data persists:
+  - verify `cardboard-data` volume exists (`docker volume ls`)
 
-## 📄 License
+## License
 
-MIT — Use freely for personal and commercial projects.
+MIT
