@@ -3,7 +3,7 @@ import { Folder, Board } from '@/types';
 import FileTree from './FileTree';
 import { PanelLeftClose } from 'lucide-react';
 
-export type SidebarView = 'workspaces' | 'tags';
+export type SidebarView = 'workspaces' | 'tags' | 'whiteboard';
 
 interface TagEntry {
   key: string;
@@ -64,6 +64,13 @@ export default function Sidebar(props: Props) {
         >
           Tags
         </button>
+        <button
+          type="button"
+          className={`sidebar-mode-tab${props.view === 'whiteboard' ? ' active' : ''}`}
+          onClick={() => props.onViewChange('whiteboard')}
+        >
+          Whiteboard
+        </button>
       </div>
 
       {props.view === 'tags' ? (
@@ -95,6 +102,19 @@ export default function Sidebar(props: Props) {
               )}
             </>
           )}
+        </div>
+      ) : props.view === 'whiteboard' ? (
+        <div className="sidebar-content sidebar-whiteboard-panel">
+          <div className="sidebar-section-title">Whiteboard</div>
+          <p className="sidebar-whiteboard-desc">
+            An infinite drawing canvas for sketching, diagramming, and brainstorming. Content here is standalone — not shown in workspaces or tags.
+          </p>
+          <div className="sidebar-whiteboard-tips">
+            <div>✏️ Freehand draw, shapes, arrows</div>
+            <div>📝 Add text anywhere</div>
+            <div>🖼️ Drag & drop images</div>
+            <div>💾 Auto-saves every 2 seconds</div>
+          </div>
         </div>
       ) : (
         <div className="sidebar-content">

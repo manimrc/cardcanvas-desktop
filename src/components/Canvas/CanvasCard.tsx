@@ -1,11 +1,21 @@
 'use client';
 import { Card as CardType } from '@/types';
 import { useRef, useState, useCallback } from 'react';
-import { FileText, Link as LinkIcon, Image, FileText as PdfIcon, Newspaper, MoreHorizontal, Maximize2 } from 'lucide-react';
+import { Maximize2, MoreHorizontal } from 'lucide-react';
 
 const TYPE_EMOJI: Record<string, string> = {
   richtext: '📝', link: '🔗', image: '🖼️', pdf: '📄', article: '📰',
 };
+
+const CARD_COLORS = [
+  { name: 'Yellow', value: '#FFF9C4' },
+  { name: 'Blue', value: '#BBDEFB' },
+  { name: 'Green', value: '#C8E6C9' },
+  { name: 'Pink', value: '#F8BBD0' },
+  { name: 'Purple', value: '#E1BEE7' },
+  { name: 'Orange', value: '#FFE0B2' },
+  { name: 'White', value: '#FFFFFF' },
+];
 
 interface Props {
   card: CardType;
@@ -14,12 +24,15 @@ interface Props {
   onSelect: () => void;
   onDoubleClick: () => void;
   onMove: (id: string, x: number, y: number) => void;
+  onDrop: (id: string, x: number, y: number) => void;
   onResize: (id: string, w: number, h: number) => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  onColorChange: (id: string, color: string) => void;
   readOnly?: boolean;
   boardLabel?: string;
   /** Fill a CSS grid cell (tags mode); ignores canvas x/y/width/height */
   uniformGrid?: boolean;
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export default function CanvasCard({
@@ -29,11 +42,14 @@ export default function CanvasCard({
   onSelect,
   onDoubleClick,
   onMove,
+  onDrop,
   onResize,
   onContextMenu,
+  onColorChange,
   readOnly = false,
   boardLabel,
   uniformGrid = false,
+  scrollContainerRef,
 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -44,29 +60,93 @@ export default function CanvasCard({
       onSelect();
       return;
     }
-    if ((e.target as HTMLElement).closest('.card-menu-btn') || (e.target as HTMLElement).closest('.card-resize-handle')) return;
+    if (
+      (e.target as HTMLElement).closest('.card-menu-btn') ||
+      (e.target as HTMLElement).closest('.card-resize-handle') ||
+      (e.target as HTMLElement).closest('.card-color-strip')
+    ) return;
     e.stopPropagation();
     onSelect();
+
     const startX = e.clientX;
     const startY = e.clientY;
     const origX = card.x;
     const origY = card.y;
+    const container = scrollContainerRef?.current;
+    const origScrollLeft = container?.scrollLeft || 0;
+    const origScrollTop = container?.scrollTop || 0;
+    let lastClientX = e.clientX;
+    let lastClientY = e.clientY;
+    let animFrameId: number | null = null;
+    let hasMoved = false;
+
     setDragging(true);
 
-    const handleMove = (ev: MouseEvent) => {
-      const dx = (ev.clientX - startX) / scale;
-      const dy = (ev.clientY - startY) / scale;
-      const snap = (v: number) => Math.round(v / 30) * 30;
-      onMove(card.id, snap(origX + dx), snap(origY + dy));
+    const EDGE_ZONE = 60;
+    const SPEED_FAST = 12;
+    const SPEED_SLOW = 4;
+    const snap = (v: number) => Math.round(v / 30) * 30;
+
+    const getCardPos = () => {
+      const dx = (lastClientX - startX) / scale;
+      const dy = (lastClientY - startY) / scale;
+      const scrollDx = (container?.scrollLeft || 0) - origScrollLeft;
+      const scrollDy = (container?.scrollTop || 0) - origScrollTop;
+      return {
+        x: snap(origX + dx + scrollDx),
+        y: snap(origY + dy + scrollDy),
+      };
     };
+
+    const autoScrollTick = () => {
+      if (!container) { animFrameId = requestAnimationFrame(autoScrollTick); return; }
+      const rect = container.getBoundingClientRect();
+      let velX = 0, velY = 0;
+
+      if (lastClientX > rect.right - EDGE_ZONE) {
+        velX = lastClientX > rect.right - 30 ? SPEED_FAST : SPEED_SLOW;
+      } else if (lastClientX < rect.left + EDGE_ZONE) {
+        velX = lastClientX < rect.left + 30 ? -SPEED_FAST : -SPEED_SLOW;
+      }
+      if (lastClientY > rect.bottom - EDGE_ZONE) {
+        velY = lastClientY > rect.bottom - 30 ? SPEED_FAST : SPEED_SLOW;
+      } else if (lastClientY < rect.top + EDGE_ZONE) {
+        velY = lastClientY < rect.top + 30 ? -SPEED_FAST : -SPEED_SLOW;
+      }
+
+      if (velX !== 0 || velY !== 0) {
+        container.scrollLeft += velX;
+        container.scrollTop += velY;
+        const pos = getCardPos();
+        onMove(card.id, pos.x, pos.y);
+      }
+      animFrameId = requestAnimationFrame(autoScrollTick);
+    };
+
+    animFrameId = requestAnimationFrame(autoScrollTick);
+
+    const handleMove = (ev: MouseEvent) => {
+      hasMoved = true;
+      lastClientX = ev.clientX;
+      lastClientY = ev.clientY;
+      const pos = getCardPos();
+      onMove(card.id, pos.x, pos.y);
+    };
+
     const handleUp = () => {
       setDragging(false);
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      if (hasMoved) {
+        const pos = getCardPos();
+        onDrop(card.id, pos.x, pos.y);
+      }
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
     };
+
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
-  }, [card.id, card.x, card.y, scale, onMove, onSelect, readOnly]);
+  }, [card.id, card.x, card.y, scale, onMove, onDrop, onSelect, readOnly, scrollContainerRef]);
 
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -169,6 +249,22 @@ export default function CanvasCard({
           <MoreHorizontal size={14} />
         </button>
       </div>
+
+      {/* Quick color palette — visible on card hover */}
+      {!readOnly && (
+        <div className="card-color-strip">
+          {CARD_COLORS.map(c => (
+            <button
+              key={c.value}
+              className={`card-color-dot${card.color === c.value ? ' active' : ''}`}
+              style={{ background: c.value }}
+              onClick={(e) => { e.stopPropagation(); onColorChange(card.id, c.value); }}
+              title={c.name}
+            />
+          ))}
+        </div>
+      )}
+
       {renderBody()}
       {boardLabel ? <div className="card-board-foot">{boardLabel}</div> : null}
       {!readOnly ? (

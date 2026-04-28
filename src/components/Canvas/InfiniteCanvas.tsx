@@ -11,8 +11,12 @@ import {
 import { Card } from '@/types';
 import CanvasCard from './CanvasCard';
 import ContextMenu from '../ContextMenu';
+import { findNonOverlappingPosition } from '@/lib/collision';
 
-export type InfiniteCanvasHandle = { getScrollContainer: () => HTMLDivElement | null };
+export type InfiniteCanvasHandle = {
+  getScrollContainer: () => HTMLDivElement | null;
+  getViewportPosition: () => { x: number; y: number };
+};
 
 interface Props {
   cards: Card[];
@@ -52,6 +56,14 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
 
   useImperativeHandle(ref, () => ({
     getScrollContainer: () => containerRef.current,
+    getViewportPosition: () => {
+      const el = containerRef.current;
+      if (!el) return { x: 40, y: 40 };
+      return {
+        x: el.scrollLeft + 40,
+        y: el.scrollTop + 40,
+      };
+    },
   }));
 
   const innerW = canvasInnerWidth ?? '200vw';
@@ -97,12 +109,32 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
     };
   }, []);
 
+  /** During drag — no collision, just move */
   const handleMove = useCallback(
     (id: string, x: number, y: number) => {
       if (readOnly) return;
       onUpdateCard({ id, x, y });
     },
     [onUpdateCard, readOnly]
+  );
+
+  /** On drop — resolve collisions */
+  const handleDrop = useCallback(
+    (id: string, x: number, y: number) => {
+      if (readOnly) return;
+      const card = cards.find(c => c.id === id);
+      if (!card) { onUpdateCard({ id, x, y }); return; }
+      const resolved = findNonOverlappingPosition(id, x, y, card.width, card.height, cards);
+      onUpdateCard({ id, x: resolved.x, y: resolved.y });
+    },
+    [onUpdateCard, readOnly, cards]
+  );
+
+  const handleColorChange = useCallback(
+    (id: string, color: string) => {
+      onUpdateCard({ id, color });
+    },
+    [onUpdateCard]
   );
 
   const handleResize = useCallback(
@@ -281,10 +313,13 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
               onSelect={() => setSelectedCardId(card.id)}
               onDoubleClick={() => onEditCard(card)}
               onMove={handleMove}
+              onDrop={handleDrop}
               onResize={handleResize}
               onContextMenu={e => handleCardContextMenu(e, card.id)}
+              onColorChange={handleColorChange}
               readOnly={readOnly}
               boardLabel={boardNameMap?.[card.boardId]}
+              scrollContainerRef={containerRef}
             />
           ))}
         </div>

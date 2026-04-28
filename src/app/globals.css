@@ -931,3 +931,124 @@ body {
 }
 
 .tag-card-content * { color: #202124 !important; }
+
+/* ===== CARD COLOR STRIP ===== */
+.card-color-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px 4px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.2s ease, opacity 0.15s ease, padding 0.2s ease;
+}
+.card:hover .card-color-strip {
+  max-height: 24px;
+  opacity: 1;
+  padding: 2px 10px 4px;
+}
+.card-color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+}
+.card-color-dot:hover {
+  transform: scale(1.2);
+}
+.card-color-dot.active {
+  border-color: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== WHITEBOARD VIEW (Excalidraw) ===== */
+.whiteboard-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-primary);
+  position: relative;
+}
+
+.excalidraw-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.whiteboard-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.whiteboard-save-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  min-height: 26px;
+  pointer-events: none;
+}
+
+.whiteboard-save-badge:empty {
+  display: none;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.whiteboard-spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Sidebar Whiteboard Panel */
+.sidebar-whiteboard-panel {
+  padding-top: 8px;
+}
+.sidebar-whiteboard-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  padding: 4px 0 12px;
+}
+.sidebar-whiteboard-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .whiteboard-content {
+    padding: 20px 16px;
+  }
+}

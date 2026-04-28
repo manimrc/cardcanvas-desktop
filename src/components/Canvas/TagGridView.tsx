@@ -41,6 +41,8 @@ export default function TagGridView({ cards, boardNameMap, onDeleteCard, onEditC
       ]
     : [];
 
+  const noop = () => {};
+
   return (
     <>
       <div
@@ -59,9 +61,11 @@ export default function TagGridView({ cards, boardNameMap, onDeleteCard, onEditC
                 selected={card.id === selectedCardId}
                 onSelect={() => setSelectedCardId(card.id)}
                 onDoubleClick={() => onEditCard(card)}
-                onMove={() => {}}
-                onResize={() => {}}
+                onMove={noop}
+                onDrop={noop}
+                onResize={noop}
                 onContextMenu={e => handleCardContextMenu(e, card.id)}
+                onColorChange={noop}
                 readOnly
                 uniformGrid
                 boardLabel={boardNameMap[card.boardId]}

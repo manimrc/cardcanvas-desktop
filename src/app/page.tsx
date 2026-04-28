@@ -8,8 +8,10 @@ import TagGridView from '@/components/Canvas/TagGridView';
 import RichTextEditor from '@/components/Editor/RichTextEditor';
 import PDFViewer from '@/components/PDFViewer';
 import AddMediaModal from '@/components/AddMediaModal';
+import WhiteboardView from '@/components/Whiteboard/WhiteboardView';
 import { collectGlobalTagEntries, cardMatchesSelectedTags } from '@/lib/hashtags';
 import { inferMediaType } from '@/lib/mediaType';
+import { findNonOverlappingPosition } from '@/lib/collision';
 
 export default function Home() {
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -133,30 +135,15 @@ export default function Home() {
     [allCards, matchesSearch, selectedTagKeys]
   );
 
-  const getNextWorkspaceGridSpot = useCallback(() => {
-    const CELL_W = 330;
-    const CELL_H = 240;
-    const START_X = 120;
-    const START_Y = 120;
-    const cols = Math.max(
-      3,
-      Math.floor((typeof window !== 'undefined' ? window.innerWidth * 1.8 : 1600) / CELL_W)
-    );
-    const occupied = new Set(
-      cards
-        .filter(c => c.boardId === activeBoardId)
-        .map(c => `${Math.round((c.x - START_X) / CELL_W)}:${Math.round((c.y - START_Y) / CELL_H)}`)
-    );
-    for (let i = 0; i < 500; i++) {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const key = `${col}:${row}`;
-      if (!occupied.has(key)) {
-        return { x: START_X + col * CELL_W, y: START_Y + row * CELL_H };
-      }
-    }
-    return { x: START_X, y: START_Y };
-  }, [cards, activeBoardId]);
+  /** Get a position in the top-left of the visible viewport, collision-free */
+  const getViewportSpot = useCallback((width = 280, height = 200) => {
+    const vp = workspaceCanvasRef.current?.getViewportPosition();
+    const baseX = vp?.x ?? 120;
+    const baseY = vp?.y ?? 120;
+    const snap = (v: number) => Math.round(v / 30) * 30;
+    const pos = findNonOverlappingPosition('__new__', snap(baseX), snap(baseY), width, height, cards);
+    return pos;
+  }, [cards]);
 
   const toggleTagKey = useCallback((key: string) => {
     setSelectedTagKeys(prev =>
@@ -179,11 +166,17 @@ export default function Home() {
     };
     const d = defaults[type] || defaults.richtext;
     if (url) d.url = url;
+
+    // Resolve collisions for the new card
+    const w = d.width ?? 280;
+    const h = d.height ?? 200;
+    const resolved = findNonOverlappingPosition('__new__', snappedX, snappedY, w, h, cards);
+
     try {
       const res = await fetch('/api/cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ boardId: activeBoardId, type, x: snappedX, y: snappedY, ...d }),
+        body: JSON.stringify({ boardId: activeBoardId, type, x: resolved.x, y: resolved.y, ...d }),
       });
       const card = await res.json();
       setCards(prev => [...prev, card]);
@@ -191,7 +184,7 @@ export default function Home() {
     } catch (err) {
       console.error('Failed to create card:', err);
     }
-  }, [activeBoardId]);
+  }, [activeBoardId, cards]);
 
   const updateCard = useCallback(async (update: Partial<Card>) => {
     setCards(prev => prev.map(c => (c.id === update.id ? { ...c, ...update } : c)));
@@ -360,6 +353,7 @@ export default function Home() {
     );
   }
 
+  const isWhiteboard = sidebarView === 'whiteboard';
   const tagsToolbar = sidebarView === 'tags';
 
   return (
@@ -392,27 +386,31 @@ export default function Home() {
       />
 
       <div className="main-area">
-        <Toolbar
-          mode={tagsToolbar ? 'tags' : 'workspace'}
-          boardName={activeBoard?.name || ''}
-          onBoardNameChange={handleBoardNameChange}
-          onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
-          onAddCard={type => {
-            if (type === 'richtext') {
-              const pos = getNextWorkspaceGridSpot();
-              createCard(type, pos.x, pos.y);
-            } else {
-              setMediaModalOpen(true);
-            }
-          }}
-          onExport={tagsToolbar ? undefined : exportBoardPng}
-          isLightMode={isLightMode}
-          onToggleTheme={() => setIsLightMode(!isLightMode)}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-        />
+        {!isWhiteboard && (
+          <Toolbar
+            mode={tagsToolbar ? 'tags' : 'workspace'}
+            boardName={activeBoard?.name || ''}
+            onBoardNameChange={handleBoardNameChange}
+            onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+            onAddCard={type => {
+              if (type === 'richtext') {
+                const pos = getViewportSpot();
+                createCard(type, pos.x, pos.y);
+              } else {
+                setMediaModalOpen(true);
+              }
+            }}
+            onExport={tagsToolbar ? undefined : exportBoardPng}
+            isLightMode={isLightMode}
+            onToggleTheme={() => setIsLightMode(!isLightMode)}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
+        )}
 
-        {sidebarView === 'tags' ? (
+        {isWhiteboard ? (
+          <WhiteboardView isLightMode={isLightMode} />
+        ) : sidebarView === 'tags' ? (
           <TagGridView
             cards={filteredTagCards}
             boardNameMap={boardNameMap}
@@ -461,7 +459,7 @@ export default function Home() {
         open={mediaModalOpen}
         onClose={() => setMediaModalOpen(false)}
         onConfirm={(u, mime) => {
-          const pos = getNextWorkspaceGridSpot();
+          const pos = getViewportSpot();
           createCard(inferMediaType(u, mime), pos.x, pos.y, u);
         }}
       />

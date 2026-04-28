@@ -98,7 +98,23 @@ function initializeDatabase(db: Database.Database) {
       data BLOB NOT NULL,
       createdAt TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS whiteboard (
+      id TEXT PRIMARY KEY,
+      content TEXT NOT NULL DEFAULT '',
+      updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
+
+  // Seed default whiteboard if empty
+  const wbCount = db.prepare('SELECT COUNT(*) as count FROM whiteboard').get() as { count: number };
+  if (wbCount.count === 0) {
+    db.prepare('INSERT INTO whiteboard (id, content, updatedAt) VALUES (?, ?, ?)').run(
+      'default',
+      '<h1>My Whiteboard</h1><p>Start typing, paste images, or drop content here...</p>',
+      new Date().toISOString()
+    );
+  }
 
   try {
     db.exec('ALTER TABLE cards ADD COLUMN tags TEXT DEFAULT "[]"');
