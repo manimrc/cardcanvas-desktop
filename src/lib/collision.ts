@@ -41,19 +41,18 @@ export function findNonOverlappingPosition(
   allCards: Card[],
   gap = GAP
 ): { x: number; y: number } {
-  const snap = (v: number) => Math.round(v / 30) * 30;
   const rect: Rect = { x: proposedX, y: proposedY, width, height };
 
   if (!hasOverlap(rect, allCards, cardId, gap)) {
     return { x: proposedX, y: proposedY };
   }
 
-  const STEP = 30;
-  const MAX_TRIES = 20;
+  const STEP = 10;
+  const MAX_TRIES = 60;
 
   // Try right
   for (let i = 1; i <= MAX_TRIES; i++) {
-    const x = snap(proposedX + i * STEP);
+    const x = proposedX + i * STEP;
     if (!hasOverlap({ ...rect, x }, allCards, cardId, gap)) {
       return { x, y: proposedY };
     }
@@ -61,7 +60,7 @@ export function findNonOverlappingPosition(
 
   // Try down
   for (let i = 1; i <= MAX_TRIES; i++) {
-    const y = snap(proposedY + i * STEP);
+    const y = proposedY + i * STEP;
     if (!hasOverlap({ ...rect, y }, allCards, cardId, gap)) {
       return { x: proposedX, y };
     }
@@ -69,7 +68,7 @@ export function findNonOverlappingPosition(
 
   // Try left
   for (let i = 1; i <= MAX_TRIES; i++) {
-    const x = snap(proposedX - i * STEP);
+    const x = proposedX - i * STEP;
     if (x < 0) break;
     if (!hasOverlap({ ...rect, x }, allCards, cardId, gap)) {
       return { x, y: proposedY };
@@ -78,7 +77,7 @@ export function findNonOverlappingPosition(
 
   // Try up
   for (let i = 1; i <= MAX_TRIES; i++) {
-    const y = snap(proposedY - i * STEP);
+    const y = proposedY - i * STEP;
     if (y < 0) break;
     if (!hasOverlap({ ...rect, y }, allCards, cardId, gap)) {
       return { x: proposedX, y };
@@ -90,8 +89,8 @@ export function findNonOverlappingPosition(
     for (let dx = -radius; dx <= radius; dx++) {
       for (let dy = -radius; dy <= radius; dy++) {
         if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
-        const x = snap(proposedX + dx * STEP);
-        const y = snap(proposedY + dy * STEP);
+        const x = proposedX + dx * STEP;
+        const y = proposedY + dy * STEP;
         if (x < 0 || y < 0) continue;
         if (!hasOverlap({ x, y, width, height }, allCards, cardId, gap)) {
           return { x, y };

@@ -6,7 +6,6 @@ import Toolbar from '@/components/Toolbar/Toolbar';
 import InfiniteCanvas, { type InfiniteCanvasHandle } from '@/components/Canvas/InfiniteCanvas';
 import TagGridView from '@/components/Canvas/TagGridView';
 import RichTextEditor from '@/components/Editor/RichTextEditor';
-import PDFViewer from '@/components/PDFViewer';
 import AddMediaModal from '@/components/AddMediaModal';
 import WhiteboardView from '@/components/Whiteboard/WhiteboardView';
 import { collectGlobalTagEntries, cardMatchesSelectedTags } from '@/lib/hashtags';
@@ -24,7 +23,6 @@ export default function Home() {
   const [sidebarView, setSidebarView] = useState<SidebarView>('workspaces');
   const [selectedTagKeys, setSelectedTagKeys] = useState<string[]>([]);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
-  const [pdfCard, setPdfCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(true);
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
   const [isLightMode, setIsLightMode] = useState(false);
@@ -51,20 +49,23 @@ export default function Home() {
     }
   }, []);
 
+  const activeBoardIdRef = useRef(activeBoardId);
+  activeBoardIdRef.current = activeBoardId;
+
   const fetchTree = useCallback(async () => {
     try {
       const res = await fetch('/api/folders');
       const data = await res.json();
       setFolders(data.folders || []);
       setBoards(data.boards || []);
-      if (!activeBoardId && data.boards?.length > 0) {
+      if (!activeBoardIdRef.current && data.boards?.length > 0) {
         setActiveBoardId(data.boards[0].id);
       }
     } catch (err) {
       console.error('Failed to fetch tree:', err);
     }
     setLoading(false);
-  }, [activeBoardId]);
+  }, []);
 
   const fetchCards = useCallback(async () => {
     if (!activeBoardId) {
@@ -140,8 +141,7 @@ export default function Home() {
     const vp = workspaceCanvasRef.current?.getViewportPosition();
     const baseX = vp?.x ?? 120;
     const baseY = vp?.y ?? 120;
-    const snap = (v: number) => Math.round(v / 30) * 30;
-    const pos = findNonOverlappingPosition('__new__', snap(baseX), snap(baseY), width, height, cards);
+    const pos = findNonOverlappingPosition('__new__', baseX, baseY, width, height, cards);
     return pos;
   }, [cards]);
 
@@ -153,9 +153,6 @@ export default function Home() {
 
   const createCard = useCallback(async (type: string, x: number, y: number, url?: string) => {
     if (!activeBoardId) return;
-    const snap = (v: number) => Math.round(v / 30) * 30;
-    const snappedX = snap(x);
-    const snappedY = snap(y);
 
     const defaults: Record<string, Partial<Card>> = {
       richtext: { title: 'New Note', content: '<p>Start typing...</p>', color: '#FFF9C4' },
@@ -170,7 +167,7 @@ export default function Home() {
     // Resolve collisions for the new card
     const w = d.width ?? 280;
     const h = d.height ?? 200;
-    const resolved = findNonOverlappingPosition('__new__', snappedX, snappedY, w, h, cards);
+    const resolved = findNonOverlappingPosition('__new__', x, y, w, h, cards);
 
     try {
       const res = await fetch('/api/cards', {
@@ -451,9 +448,7 @@ export default function Home() {
         <RichTextEditor card={editingCard} onSave={updateCard} onClose={() => setEditingCard(null)} />
       )}
 
-      {pdfCard && pdfCard.url && (
-        <PDFViewer url={pdfCard.url} title={pdfCard.title} onClose={() => setPdfCard(null)} />
-      )}
+
 
       <AddMediaModal
         open={mediaModalOpen}

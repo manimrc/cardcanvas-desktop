@@ -1,22 +1,12 @@
 'use client';
 import { Card as CardType } from '@/types';
+import { CARD_COLORS } from '@/lib/constants';
 import { useRef, useState, useCallback } from 'react';
 import { Maximize2, MoreHorizontal } from 'lucide-react';
 
 const TYPE_EMOJI: Record<string, string> = {
   richtext: '📝', link: '🔗', image: '🖼️', pdf: '📄', article: '📰',
 };
-
-const CARD_COLORS = [
-  { name: 'Yellow', value: '#FFF9C4' },
-  { name: 'Blue', value: '#BBDEFB' },
-  { name: 'Green', value: '#C8E6C9' },
-  { name: 'Pink', value: '#F8BBD0' },
-  { name: 'Purple', value: '#E1BEE7' },
-  { name: 'Orange', value: '#FFE0B2' },
-  { name: 'White', value: '#FFFFFF' },
-];
-
 interface Props {
   card: CardType;
   scale: number;
@@ -85,7 +75,6 @@ export default function CanvasCard({
     const EDGE_ZONE = 60;
     const SPEED_FAST = 12;
     const SPEED_SLOW = 4;
-    const snap = (v: number) => Math.round(v / 30) * 30;
 
     const getCardPos = () => {
       const dx = (lastClientX - startX) / scale;
@@ -93,13 +82,13 @@ export default function CanvasCard({
       const scrollDx = (container?.scrollLeft || 0) - origScrollLeft;
       const scrollDy = (container?.scrollTop || 0) - origScrollTop;
       return {
-        x: snap(origX + dx + scrollDx),
-        y: snap(origY + dy + scrollDy),
+        x: Math.round(origX + dx + scrollDx),
+        y: Math.round(origY + dy + scrollDy),
       };
     };
 
     const autoScrollTick = () => {
-      if (!container) { animFrameId = requestAnimationFrame(autoScrollTick); return; }
+      if (!container) return;
       const rect = container.getBoundingClientRect();
       let velX = 0, velY = 0;
 
@@ -159,8 +148,7 @@ export default function CanvasCard({
     const handleMove = (ev: MouseEvent) => {
       const dw = (ev.clientX - startX) / scale;
       const dh = (ev.clientY - startY) / scale;
-      const snap = (v: number) => Math.round(v / 30) * 30;
-      onResize(card.id, Math.max(180, snap(origW + dw)), Math.max(120, snap(origH + dh)));
+      onResize(card.id, Math.max(180, Math.round(origW + dw)), Math.max(120, Math.round(origH + dh)));
     };
     const handleUp = () => {
       window.removeEventListener('mousemove', handleMove);

@@ -8,6 +8,7 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Highlight from '@tiptap/extension-highlight';
 import { Card } from '@/types';
+import { CARD_COLORS } from '@/lib/constants';
 import { useState, useEffect, useCallback } from 'react';
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
@@ -15,17 +16,6 @@ import {
   Quote, Code, AlignLeft, AlignCenter, AlignRight,
   Link as LinkIcon, Image as ImageIcon, Highlighter, X, Undo, Redo
 } from 'lucide-react';
-
-const CARD_COLORS = [
-  { name: 'Yellow', value: '#FFF9C4' },
-  { name: 'Blue', value: '#BBDEFB' },
-  { name: 'Green', value: '#C8E6C9' },
-  { name: 'Pink', value: '#F8BBD0' },
-  { name: 'Purple', value: '#E1BEE7' },
-  { name: 'Orange', value: '#FFE0B2' },
-  { name: 'White', value: '#FFFFFF' },
-];
-
 interface Props {
   card: Card;
   onSave: (card: Partial<Card>) => void;

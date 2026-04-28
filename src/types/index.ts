@@ -33,14 +33,3 @@ export interface Folder {
   createdAt: string;
   updatedAt: string;
 }
-
-export interface FolderTreeItem extends Folder {
-  children: FolderTreeItem[];
-  boards: Board[];
-}
-
-export interface CanvasTransform {
-  x: number;
-  y: number;
-  scale: number;
-}

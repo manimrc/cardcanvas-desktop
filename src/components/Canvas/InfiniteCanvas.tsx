@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   forwardRef,
   useImperativeHandle,
 } from 'react';
@@ -208,7 +209,7 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
         ]
       : [];
 
-  const maxZ = cards.length ? Math.max(...cards.map(c => c.zIndex)) : 0;
+  const maxZ = useMemo(() => cards.length ? Math.max(...cards.map(c => c.zIndex)) : 0, [cards]);
 
   const cardMenuItems = contextMenu?.cardId
     ? readOnly
