@@ -728,6 +728,137 @@ body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* ===== FOCUS / ZEN READING MODE ===== */
+.focus-mode-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  animation: focusFadeIn 0.35s ease;
+}
+@keyframes focusFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.focus-mode-container {
+  width: 60%;
+  max-width: 720px;
+  min-height: 100vh;
+  padding: 60px 0 100px;
+  display: flex;
+  flex-direction: column;
+}
+
+.focus-mode-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.focus-mode-title {
+  flex: 1;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.focus-mode-exit-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.focus-mode-exit-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+.focus-mode-content {
+  flex: 1;
+  color: var(--text-primary);
+  font-size: 17px;
+  line-height: 1.8;
+}
+.focus-mode-content .tiptap {
+  padding: 0;
+  min-height: auto;
+}
+.focus-mode-content .tiptap p {
+  margin-bottom: 1.2em;
+}
+.focus-mode-content .tiptap h1 {
+  font-size: 26px;
+  margin-top: 1.5em;
+  margin-bottom: 0.6em;
+}
+.focus-mode-content .tiptap h2 {
+  font-size: 22px;
+  margin-top: 1.4em;
+  margin-bottom: 0.5em;
+}
+.focus-mode-content .tiptap h3 {
+  font-size: 18px;
+  margin-top: 1.3em;
+  margin-bottom: 0.4em;
+}
+.focus-mode-content .tiptap ul,
+.focus-mode-content .tiptap ol {
+  margin-bottom: 1em;
+  padding-left: 1.5em;
+}
+.focus-mode-content .tiptap blockquote {
+  border-left: 3px solid var(--border-light);
+  padding-left: 1em;
+  margin: 1.2em 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+.focus-mode-content .tiptap img {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  margin: 1em 0;
+}
+
+/* Focus button in editor header */
+.focus-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+@media (max-width: 768px) {
+  .focus-mode-container {
+    width: 90%;
+    padding: 32px 0 60px;
+  }
+  .focus-mode-title {
+    font-size: 22px;
+  }
+  .focus-mode-content {
+    font-size: 15px;
+  }
+}
+
 .editor-modal-header {
   display: flex; align-items: center; gap: 12px;
   padding: 16px 20px;

@@ -9,12 +9,13 @@ import TextAlign from '@tiptap/extension-text-align';
 import Highlight from '@tiptap/extension-highlight';
 import { Card } from '@/types';
 import { CARD_COLORS } from '@/lib/constants';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading1, Heading2, Heading3, List, ListOrdered,
   Quote, Code, AlignLeft, AlignCenter, AlignRight,
-  Link as LinkIcon, Image as ImageIcon, Highlighter, X, Undo, Redo
+  Link as LinkIcon, Image as ImageIcon, Highlighter, X, Undo, Redo,
+  BookOpen, Minimize2
 } from 'lucide-react';
 interface Props {
   card: Card;
@@ -31,6 +32,33 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
   const [url, setUrl] = useState(card.url || '');
   const [tagsInput, setTagsInput] = useState((card.tags || []).join(', '));
   const [isEditing, setIsEditing] = useState(!card.url && (card.type === 'pdf' || card.type === 'image'));
+  const [focusMode, setFocusMode] = useState(false);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  const toggleFocusMode = useCallback(() => {
+    if (!focusMode) {
+      // Enter focus mode + browser fullscreen
+      overlayRef.current?.requestFullscreen?.().catch(() => {});
+      setFocusMode(true);
+    } else {
+      // Exit focus mode + browser fullscreen
+      if (document.fullscreenElement) {
+        document.exitFullscreen?.().catch(() => {});
+      }
+      setFocusMode(false);
+    }
+  }, [focusMode]);
+
+  // Sync state when user exits fullscreen via Escape (browser native)
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement && focusMode) {
+        setFocusMode(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, [focusMode]);
 
   const editor = useEditor({
     extensions: [
@@ -67,7 +95,13 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        if (focusMode) {
+          // Fullscreen exit is handled by fullscreenchange listener
+          return;
+        }
+        onClose();
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
         handleSave();
@@ -75,7 +109,7 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [handleSave, onClose]);
+  }, [handleSave, onClose, focusMode]);
 
   useEffect(() => {
     if (editor) {
@@ -162,8 +196,32 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
     );
   }
 
+  // ---- Focus / Zen reading mode ----
+  if (focusMode) {
+    return (
+      <div ref={overlayRef} className="focus-mode-overlay">
+        <div className="focus-mode-container">
+          <div className="focus-mode-header">
+            <h1 className="focus-mode-title">{title || 'Untitled'}</h1>
+            <button
+              type="button"
+              className="focus-mode-exit-btn"
+              onClick={toggleFocusMode}
+              title="Exit focus mode"
+            >
+              <Minimize2 size={18} />
+            </button>
+          </div>
+          <div className="focus-mode-content">
+            <EditorContent editor={editor} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div ref={overlayRef} className="modal-overlay" onClick={onClose}>
       <div className="editor-modal" onClick={e => e.stopPropagation()}>
         <div className="editor-modal-header">
           {isEditing ? (
@@ -196,6 +254,15 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
               </>
             ) : (
               <button className="editor-top-action-btn" onClick={() => setIsEditing(true)}>Edit Card</button>
+            )}
+            {!isEditing && (
+              <button
+                className="editor-top-action-btn focus-mode-btn"
+                onClick={toggleFocusMode}
+                title="Focus mode — distraction-free reading (hides browser UI)"
+              >
+                <BookOpen size={14} /> Focus
+              </button>
             )}
             <button className="editor-close-btn" onClick={onClose}><X size={16} /></button>
           </div>

@@ -19,7 +19,7 @@ Everything runs on your machine. Your data stays in a single SQLite file. No acc
 
 ### 🗂️ Workspaces
 - Organize content into **Folders → Boards** (like folders → documents)
-- Each board is an infinite canvas where you drag-and-drop cards freely
+- Each board is a canvas where you drag-and-drop cards freely
 - Cards never overlap — collision detection nudges them to the nearest open spot
 - Right-click the canvas to create new cards, or double-click empty space for a quick note
 
