@@ -994,61 +994,33 @@ body {
   font-weight: 500;
 }
 
-.whiteboard-save-badge {
+/* Floating sidebar toggle on whiteboard when sidebar is collapsed */
+.whiteboard-sidebar-toggle {
   position: absolute;
   top: 12px;
-  right: 12px;
-  z-index: 100;
+  left: 12px;
+  z-index: 200;
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 4px 10px;
-  min-height: 26px;
-  pointer-events: none;
-}
-
-.whiteboard-save-badge:empty {
-  display: none;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-.whiteboard-spinner {
-  animation: spin 1s linear infinite;
-}
-
-/* Sidebar Whiteboard Panel */
-.sidebar-whiteboard-panel {
-  padding-top: 8px;
-}
-.sidebar-whiteboard-desc {
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.5;
-  padding: 4px 0 12px;
-}
-.sidebar-whiteboard-tips {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  background: var(--bg-tertiary);
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
-  padding: 12px;
   border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.whiteboard-sidebar-toggle:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 @media (max-width: 768px) {
-  .whiteboard-content {
-    padding: 20px 16px;
+  .whiteboard-sidebar-toggle {
+    top: 8px;
+    left: 8px;
   }
 }

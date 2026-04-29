@@ -67,7 +67,7 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
     },
   }));
 
-  const innerW = canvasInnerWidth ?? '200vw';
+  const innerW = canvasInnerWidth ?? '150vw';
   const innerH = canvasInnerHeight ?? '300vh';
 
   useLayoutEffect(() => {

@@ -11,33 +11,53 @@ import WhiteboardView from '@/components/Whiteboard/WhiteboardView';
 import { collectGlobalTagEntries, cardMatchesSelectedTags } from '@/lib/hashtags';
 import { inferMediaType } from '@/lib/mediaType';
 import { findNonOverlappingPosition } from '@/lib/collision';
+import { PanelLeft } from 'lucide-react';
+
+/** Read a value from localStorage (SSR-safe) */
+function readStorage<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const v = localStorage.getItem(key);
+    return v !== null ? (JSON.parse(v) as T) : fallback;
+  } catch { return fallback; }
+}
 
 export default function Home() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [boards, setBoards] = useState<Board[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [allCards, setAllCards] = useState<Card[]>([]);
-  const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
+  const [activeBoardId, setActiveBoardId] = useState<string | null>(() => readStorage('cc_activeBoardId', null));
   const [activeBoard, setActiveBoard] = useState<Board | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarView, setSidebarView] = useState<SidebarView>('workspaces');
+  const [sidebarView, setSidebarView] = useState<SidebarView>(() => readStorage<SidebarView>('cc_sidebarView', 'workspaces'));
   const [selectedTagKeys, setSelectedTagKeys] = useState<string[]>([]);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(true);
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
-  const [isLightMode, setIsLightMode] = useState(false);
+  const [isLightMode, setIsLightMode] = useState(() => readStorage('cc_isLightMode', true));
   const [searchQuery, setSearchQuery] = useState('');
 
   const workspaceScrollRef = useRef<Record<string, { left: number; top: number }>>({});
   const workspaceCanvasRef = useRef<InfiniteCanvasHandle>(null);
 
+  // Persist key state to localStorage on change
   useEffect(() => {
     if (isLightMode) {
       document.documentElement.classList.add('light');
     } else {
       document.documentElement.classList.remove('light');
     }
+    localStorage.setItem('cc_isLightMode', JSON.stringify(isLightMode));
   }, [isLightMode]);
+
+  useEffect(() => {
+    if (activeBoardId) localStorage.setItem('cc_activeBoardId', JSON.stringify(activeBoardId));
+  }, [activeBoardId]);
+
+  useEffect(() => {
+    localStorage.setItem('cc_sidebarView', JSON.stringify(sidebarView));
+  }, [sidebarView]);
 
   const fetchAllCards = useCallback(async () => {
     try {
@@ -403,6 +423,18 @@ export default function Home() {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
           />
+        )}
+
+        {/* Floating sidebar toggle for whiteboard (toolbar is hidden there) */}
+        {isWhiteboard && sidebarCollapsed && (
+          <button
+            type="button"
+            className="whiteboard-sidebar-toggle"
+            onClick={() => setSidebarCollapsed(false)}
+            title="Open sidebar"
+          >
+            <PanelLeft size={18} />
+          </button>
         )}
 
         {isWhiteboard ? (

@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { Check, Loader2 } from 'lucide-react';
 
 // Excalidraw must be loaded client-side only (no SSR)
 const ExcalidrawWrapper = dynamic(
@@ -122,10 +121,6 @@ export default function WhiteboardView({ isLightMode }: { isLightMode?: boolean 
 
   return (
     <div className="whiteboard-view">
-      <div className="whiteboard-save-badge">
-        {saveStatus === 'saving' && <><Loader2 size={13} className="whiteboard-spinner" /> Saving…</>}
-        {saveStatus === 'saved' && <><Check size={13} /> Saved</>}
-      </div>
       <div className="excalidraw-container">
         <ExcalidrawWrapper
           initialData={initialData}

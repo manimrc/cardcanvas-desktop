@@ -104,18 +104,7 @@ export default function Sidebar(props: Props) {
           )}
         </div>
       ) : props.view === 'whiteboard' ? (
-        <div className="sidebar-content sidebar-whiteboard-panel">
-          <div className="sidebar-section-title">Whiteboard</div>
-          <p className="sidebar-whiteboard-desc">
-            An infinite drawing canvas for sketching, diagramming, and brainstorming. Content here is standalone — not shown in workspaces or tags.
-          </p>
-          <div className="sidebar-whiteboard-tips">
-            <div>✏️ Freehand draw, shapes, arrows</div>
-            <div>📝 Add text anywhere</div>
-            <div>🖼️ Drag & drop images</div>
-            <div>💾 Auto-saves every 2 seconds</div>
-          </div>
-        </div>
+        null
       ) : (
         <div className="sidebar-content">
           <div className="sidebar-section-title">Workspaces</div>
