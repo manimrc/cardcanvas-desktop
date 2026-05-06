@@ -1,12 +1,18 @@
 {
   "name": "cardcanvas",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
+  "main": "electron/main.js",
+  "author": "CardCanvas",
+  "description": "A visual workspace for organizing cards, notes, links, and media on an infinite canvas.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "electron:dev": "NODE_ENV=development electron .",
+    "electron:build": "node electron/build.js",
+    "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.1",
@@ -45,6 +51,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
+    "electron": "^42.0.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "typescript": "^5"

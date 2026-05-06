@@ -1,0 +1,63 @@
+appId: com.cardcanvas.app
+productName: CardCanvas
+copyright: Copyright © 2026 CardCanvas
+
+directories:
+  output: dist
+  buildResources: build
+
+# Skip native module rebuild — better-sqlite3 runs in the Next.js
+# standalone server (a regular Node.js process), NOT in Electron's renderer
+npmRebuild: false
+
+# Only include the electron folder in the asar archive
+files:
+  - electron/**/*
+  - build/**/*
+  - "!node_modules"
+  - "!src"
+  - "!.next"
+  - "!data"
+  - "!**/*.map"
+
+# The standalone server goes OUTSIDE asar so Node can run it
+extraResources:
+  - from: .next/standalone
+    to: standalone
+    filter:
+      - "**/*"
+      - "!**/*.map"
+
+# macOS
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch:
+        - arm64
+  darkModeSupport: true
+  artifactName: CardCanvas-${version}-mac-${arch}.${ext}
+
+dmg:
+  title: CardCanvas
+
+# Windows
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.png
+  artifactName: CardCanvas-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+
+# Linux
+linux:
+  target:
+    - AppImage
+  category: Office
+  icon: build/icon.png
+  artifactName: CardCanvas-${version}-linux.${ext}

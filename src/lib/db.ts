@@ -3,7 +3,10 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 
-const DB_PATH = path.join(process.cwd(), 'data', 'cardboard.db');
+// In desktop (Electron) mode, CARDCANVAS_DATA_DIR points to the user's app data folder.
+// In dev/web mode, fall back to ./data in the project root.
+const DATA_DIR = process.env.CARDCANVAS_DATA_DIR || path.join(process.cwd(), 'data');
+const DB_PATH = path.join(DATA_DIR, 'cardboard.db');
 
 let db: Database.Database | null = null;
 
