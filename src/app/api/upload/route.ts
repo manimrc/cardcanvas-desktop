@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getSessionUserId } from '@/lib/session';
 import { v4 as uuidv4 } from 'uuid';
 
 // POST /api/upload - Upload a file (image or PDF)
 export async function POST(req: NextRequest) {
   try {
-    const db = getDb();
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const db = getDb(userId);
     const formData = await req.formData();
     const file = formData.get('file') as File;
     const cardId = (formData.get('cardId') as string) || null;
@@ -31,7 +35,10 @@ export async function POST(req: NextRequest) {
 // GET /api/upload?id=xxx - Get an uploaded file
 export async function GET(req: NextRequest) {
   try {
-    const db = getDb();
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const db = getDb(userId);
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 

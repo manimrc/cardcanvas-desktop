@@ -12,7 +12,8 @@
     "lint": "eslint",
     "electron:dev": "NODE_ENV=development electron .",
     "electron:build": "node electron/build.js",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "reset-password": "node reset-password.mjs"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.1",
@@ -34,6 +35,7 @@
     "@tiptap/pm": "^3.22.4",
     "@tiptap/react": "^3.22.4",
     "@tiptap/starter-kit": "^3.22.4",
+    "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.9.0",
     "date-fns": "^4.1.0",
     "html2canvas": "^1.4.1",
@@ -46,6 +48,7 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",

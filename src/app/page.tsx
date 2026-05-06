@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, Board, Folder } from '@/types';
 import Sidebar, { type SidebarView } from '@/components/Sidebar/Sidebar';
 import Toolbar from '@/components/Toolbar/Toolbar';
@@ -22,7 +23,15 @@ function readStorage<T>(key: string, fallback: T): T {
   } catch { return fallback; }
 }
 
+interface UserInfo {
+  id: string;
+  username: string;
+  displayName: string;
+}
+
 export default function Home() {
+  const router = useRouter();
+  const [user, setUser] = useState<UserInfo | null>(null);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [boards, setBoards] = useState<Board[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
@@ -37,6 +46,20 @@ export default function Home() {
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
   const [isLightMode, setIsLightMode] = useState(() => readStorage('cc_isLightMode', true));
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch current user on mount
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(data => { if (data.user) setUser(data.user); })
+      .catch(() => {});
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+    router.refresh();
+  }, [router]);
 
   const workspaceScrollRef = useRef<Record<string, { left: number; top: number }>>({});
   const workspaceCanvasRef = useRef<InfiniteCanvasHandle>(null);
@@ -78,8 +101,10 @@ export default function Home() {
       const data = await res.json();
       setFolders(data.folders || []);
       setBoards(data.boards || []);
-      if (!activeBoardIdRef.current && data.boards?.length > 0) {
-        setActiveBoardId(data.boards[0].id);
+      if (data.boards?.length > 0) {
+        if (!activeBoardIdRef.current || !data.boards.some((b: Board) => b.id === activeBoardIdRef.current)) {
+          setActiveBoardId(data.boards[0].id);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch tree:', err);
@@ -195,6 +220,10 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ boardId: activeBoardId, type, x: resolved.x, y: resolved.y, ...d }),
       });
+      if (!res.ok) {
+        console.error('Server returned error:', await res.text());
+        return;
+      }
       const card = await res.json();
       setCards(prev => [...prev, card]);
       setAllCards(prev => [...prev, card]);
@@ -400,6 +429,8 @@ export default function Home() {
         selectedTagKeys={selectedTagKeys}
         onToggleTagKey={toggleTagKey}
         onClearTagSelection={() => setSelectedTagKeys([])}
+        user={user}
+        onLogout={handleLogout}
       />
 
       <div className="main-area">

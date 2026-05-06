@@ -1,13 +1,19 @@
 'use client';
 import { Folder, Board } from '@/types';
 import FileTree from './FileTree';
-import { PanelLeftClose } from 'lucide-react';
+import { PanelLeftClose, LogOut } from 'lucide-react';
 
 export type SidebarView = 'workspaces' | 'tags' | 'whiteboard';
 
 interface TagEntry {
   key: string;
   label: string;
+}
+
+interface UserInfo {
+  id: string;
+  username: string;
+  displayName: string;
 }
 
 interface Props {
@@ -29,6 +35,8 @@ interface Props {
   selectedTagKeys: string[];
   onToggleTagKey: (key: string) => void;
   onClearTagSelection: () => void;
+  user?: UserInfo | null;
+  onLogout?: () => void;
 }
 
 export default function Sidebar(props: Props) {
@@ -122,6 +130,28 @@ export default function Sidebar(props: Props) {
           />
         </div>
       )}
+
+      {/* User section at bottom */}
+      {props.user && (
+        <div className="sidebar-user-section">
+          <div className="sidebar-user-avatar">
+            {(props.user.displayName || props.user.username).charAt(0)}
+          </div>
+          <div className="sidebar-user-info">
+            <div className="sidebar-user-name">{props.user.displayName}</div>
+            <div className="sidebar-user-handle">@{props.user.username}</div>
+          </div>
+          <button
+            type="button"
+            className="sidebar-logout-btn"
+            title="Sign out"
+            onClick={props.onLogout}
+          >
+            <LogOut size={14} />
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
+

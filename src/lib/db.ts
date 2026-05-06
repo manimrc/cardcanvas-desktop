@@ -6,22 +6,34 @@ import { v4 as uuidv4 } from 'uuid';
 // In desktop (Electron) mode, CARDCANVAS_DATA_DIR points to the user's app data folder.
 // In dev/web mode, fall back to ./data in the project root.
 const DATA_DIR = process.env.CARDCANVAS_DATA_DIR || path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DATA_DIR, 'cardboard.db');
 
-let db: Database.Database | null = null;
+// Cache of open database connections keyed by userId
+const dbCache = new Map<string, Database.Database>();
 
-export function getDb(): Database.Database {
-  if (!db) {
-    const dir = path.dirname(DB_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+/**
+ * Get the database for a specific user.
+ * Each user has their own isolated SQLite file: data/<userId>.db
+ * This means all existing SQL queries work unchanged — the isolation
+ * is at the file level, not the query level.
+ */
+export function getDb(userId?: string): Database.Database {
+  // Fall back to legacy single-user mode if no userId provided
+  const key = userId || '__default__';
+  const dbFileName = userId ? `${userId}.db` : 'cardboard.db';
+  const dbPath = path.join(DATA_DIR, dbFileName);
 
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    initializeDatabase(db);
+  const cached = dbCache.get(key);
+  if (cached) return cached;
+
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
   }
+
+  const db = new Database(dbPath);
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+  initializeDatabase(db);
+  dbCache.set(key, db);
   return db;
 }
 

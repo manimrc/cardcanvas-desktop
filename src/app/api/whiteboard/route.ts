@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getSessionUserId } from '@/lib/session';
 
 // GET /api/whiteboard — Get whiteboard content
 export async function GET() {
   try {
-    const db = getDb();
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const db = getDb(userId);
     const row = db.prepare('SELECT * FROM whiteboard WHERE id = ?').get('default') as {
       id: string;
       content: string;
@@ -24,7 +28,10 @@ export async function GET() {
 // PUT /api/whiteboard — Save whiteboard content
 export async function PUT(req: NextRequest) {
   try {
-    const db = getDb();
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const db = getDb(userId);
     const body = await req.json();
     const now = new Date().toISOString();
 

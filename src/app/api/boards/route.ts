@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getSessionUserId } from '@/lib/session';
 import { v4 as uuidv4 } from 'uuid';
 
 // GET /api/boards?folderId=xxx or GET /api/boards?id=xxx
 export async function GET(req: NextRequest) {
   try {
-    const db = getDb();
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const db = getDb(userId);
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const folderId = searchParams.get('folderId');
@@ -32,7 +36,10 @@ export async function GET(req: NextRequest) {
 // POST /api/boards - Create a new board
 export async function POST(req: NextRequest) {
   try {
-    const db = getDb();
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const db = getDb(userId);
     const body = await req.json();
     const id = uuidv4();
     const now = new Date().toISOString();
@@ -52,7 +59,10 @@ export async function POST(req: NextRequest) {
 // PUT /api/boards - Update board
 export async function PUT(req: NextRequest) {
   try {
-    const db = getDb();
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const db = getDb(userId);
     const body = await req.json();
     const now = new Date().toISOString();
 
@@ -68,7 +78,10 @@ export async function PUT(req: NextRequest) {
 // DELETE /api/boards
 export async function DELETE(req: NextRequest) {
   try {
-    const db = getDb();
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const db = getDb(userId);
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 

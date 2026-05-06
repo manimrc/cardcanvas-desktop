@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getSessionUserId } from '@/lib/session';
 import { v4 as uuidv4 } from 'uuid';
 
 // GET /api/folders - Get all folders with nested structure
 export async function GET() {
   try {
-    const db = getDb();
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const db = getDb(userId);
     const folders = db.prepare('SELECT * FROM folders ORDER BY name').all();
     const boards = db.prepare('SELECT * FROM boards ORDER BY name').all();
     return NextResponse.json({ folders, boards });
@@ -18,7 +22,10 @@ export async function GET() {
 // POST /api/folders - Create a new folder
 export async function POST(req: NextRequest) {
   try {
-    const db = getDb();
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const db = getDb(userId);
     const body = await req.json();
     const id = uuidv4();
     const now = new Date().toISOString();
@@ -38,7 +45,10 @@ export async function POST(req: NextRequest) {
 // PUT /api/folders - Rename a folder
 export async function PUT(req: NextRequest) {
   try {
-    const db = getDb();
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const db = getDb(userId);
     const body = await req.json();
     const now = new Date().toISOString();
 
@@ -54,7 +64,10 @@ export async function PUT(req: NextRequest) {
 // DELETE /api/folders
 export async function DELETE(req: NextRequest) {
   try {
-    const db = getDb();
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const db = getDb(userId);
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
