@@ -2,6 +2,7 @@
 import type { Card } from '@/types';
 import CanvasCard from './CanvasCard';
 import ContextMenu from '../ContextMenu';
+import ConfirmDialog from '../ConfirmDialog';
 import { useCallback, useState } from 'react';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 export default function TagGridView({ cards, boardNameMap, onDeleteCard, onEditCard }: Props) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; cardId?: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ cardId: string; title: string } | null>(null);
 
   const handleCardContextMenu = useCallback((e: React.MouseEvent, cardId: string) => {
     setContextMenu({ x: e.clientX, y: e.clientY, cardId });
@@ -22,20 +24,14 @@ export default function TagGridView({ cards, boardNameMap, onDeleteCard, onEditC
   const cardMenuItems = contextMenu?.cardId
     ? [
         {
-          label: 'Edit Card',
-          icon: '✏️',
-          onClick: () => {
-            const c = cards.find(x => x.id === contextMenu.cardId);
-            if (c) onEditCard(c);
-          },
-        },
-        { divider: true, label: '', onClick: () => {} },
-        {
           label: 'Delete Card',
           icon: '🗑️',
           danger: true,
           onClick: () => {
-            if (contextMenu.cardId) onDeleteCard(contextMenu.cardId);
+            if (contextMenu.cardId) {
+              const c = cards.find(x => x.id === contextMenu.cardId);
+              setDeleteConfirm({ cardId: contextMenu.cardId, title: c?.title || 'Untitled' });
+            }
           },
         },
       ]
@@ -77,6 +73,19 @@ export default function TagGridView({ cards, boardNameMap, onDeleteCard, onEditC
 
       {contextMenu && (
         <ContextMenu x={contextMenu.x} y={contextMenu.y} items={cardMenuItems} onClose={() => setContextMenu(null)} />
+      )}
+
+      {deleteConfirm && (
+        <ConfirmDialog
+          title="Delete Card"
+          message={`Are you sure you want to delete "${deleteConfirm.title}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={() => {
+            onDeleteCard(deleteConfirm.cardId);
+            setDeleteConfirm(null);
+          }}
+          onCancel={() => setDeleteConfirm(null)}
+        />
       )}
     </>
   );

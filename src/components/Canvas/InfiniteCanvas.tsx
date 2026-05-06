@@ -5,13 +5,13 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
-  useMemo,
   forwardRef,
   useImperativeHandle,
 } from 'react';
 import { Card } from '@/types';
 import CanvasCard from './CanvasCard';
 import ContextMenu from '../ContextMenu';
+import ConfirmDialog from '../ConfirmDialog';
 import { findNonOverlappingPosition } from '@/lib/collision';
 
 export type InfiniteCanvasHandle = {
@@ -54,6 +54,7 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; cardId?: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ cardId: string; title: string } | null>(null);
 
   useImperativeHandle(ref, () => ({
     getScrollContainer: () => containerRef.current,
@@ -209,59 +210,17 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
         ]
       : [];
 
-  const maxZ = useMemo(() => cards.length ? Math.max(...cards.map(c => c.zIndex)) : 0, [cards]);
-
   const cardMenuItems = contextMenu?.cardId
-    ? readOnly
-      ? [
-          {
-            label: 'Edit Card',
-            icon: '✏️',
-            onClick: () => {
-              const c = cards.find(x => x.id === contextMenu.cardId);
-              if (c) onEditCard(c);
-            },
-          },
-          { divider: true, label: '', onClick: () => {} },
+    ? [
           {
             label: 'Delete Card',
             icon: '🗑️',
             danger: true,
             onClick: () => {
-              if (contextMenu.cardId) onDeleteCard(contextMenu.cardId);
-            },
-          },
-        ]
-      : [
-          {
-            label: 'Edit Card',
-            icon: '✏️',
-            onClick: () => {
-              const c = cards.find(x => x.id === contextMenu.cardId);
-              if (c) onEditCard(c);
-            },
-          },
-          {
-            label: 'Bring to Front',
-            icon: '⬆️',
-            onClick: () => {
-              onUpdateCard({ id: contextMenu.cardId!, zIndex: maxZ + 1 });
-            },
-          },
-          {
-            label: 'Send to Back',
-            icon: '⬇️',
-            onClick: () => {
-              onUpdateCard({ id: contextMenu.cardId!, zIndex: 0 });
-            },
-          },
-          { divider: true, label: '', onClick: () => {} },
-          {
-            label: 'Delete Card',
-            icon: '🗑️',
-            danger: true,
-            onClick: () => {
-              if (contextMenu.cardId) onDeleteCard(contextMenu.cardId);
+              if (contextMenu.cardId) {
+                const c = cards.find(x => x.id === contextMenu.cardId);
+                setDeleteConfirm({ cardId: contextMenu.cardId, title: c?.title || 'Untitled' });
+              }
             },
           },
         ]
@@ -332,6 +291,19 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
           y={contextMenu.y}
           items={contextMenu.cardId ? cardMenuItems : canvasMenuItems}
           onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {deleteConfirm && (
+        <ConfirmDialog
+          title="Delete Card"
+          message={`Are you sure you want to delete "${deleteConfirm.title}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={() => {
+            onDeleteCard(deleteConfirm.cardId);
+            setDeleteConfirm(null);
+          }}
+          onCancel={() => setDeleteConfirm(null)}
         />
       )}
     </>

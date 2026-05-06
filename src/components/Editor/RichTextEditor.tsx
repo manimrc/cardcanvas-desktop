@@ -31,34 +31,9 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
   const [urlInput, setUrlInput] = useState('');
   const [url, setUrl] = useState(card.url || '');
   const [tagsInput, setTagsInput] = useState((card.tags || []).join(', '));
-  const [isEditing, setIsEditing] = useState(!card.url && (card.type === 'pdf' || card.type === 'image'));
+  const [isEditing, setIsEditing] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
-
-  const toggleFocusMode = useCallback(() => {
-    if (!focusMode) {
-      // Enter focus mode + browser fullscreen
-      overlayRef.current?.requestFullscreen?.().catch(() => {});
-      setFocusMode(true);
-    } else {
-      // Exit focus mode + browser fullscreen
-      if (document.fullscreenElement) {
-        document.exitFullscreen?.().catch(() => {});
-      }
-      setFocusMode(false);
-    }
-  }, [focusMode]);
-
-  // Sync state when user exits fullscreen via Escape (browser native)
-  useEffect(() => {
-    const onFsChange = () => {
-      if (!document.fullscreenElement && focusMode) {
-        setFocusMode(false);
-      }
-    };
-    document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
-  }, [focusMode]);
 
   const editor = useEditor({
     extensions: [
@@ -76,6 +51,34 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
       attributes: { class: 'tiptap' },
     },
   });
+
+  const toggleFocusMode = useCallback(() => {
+    if (!focusMode) {
+      // Enter focus mode: make editor read-only + browser fullscreen
+      editor?.setEditable(false);
+      overlayRef.current?.requestFullscreen?.().catch(() => {});
+      setFocusMode(true);
+    } else {
+      // Exit focus mode: restore editing + exit browser fullscreen
+      editor?.setEditable(true);
+      if (document.fullscreenElement) {
+        document.exitFullscreen?.().catch(() => {});
+      }
+      setFocusMode(false);
+    }
+  }, [focusMode, editor]);
+
+  // Sync state when user exits fullscreen via Escape (browser native)
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement && focusMode) {
+        editor?.setEditable(true);
+        setFocusMode(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, [focusMode, editor]);
 
   const handleSave = useCallback(() => {
     const parsedTags = tagsInput
@@ -111,11 +114,7 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
     return () => window.removeEventListener('keydown', handleKey);
   }, [handleSave, onClose, focusMode]);
 
-  useEffect(() => {
-    if (editor) {
-      editor.setEditable(isEditing);
-    }
-  }, [isEditing, editor]);
+
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -166,35 +165,7 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
 
   if (!editor) return null;
 
-  if (!isEditing && (card.type === 'pdf' || card.type === 'image') && url) {
-    const textContent = editor?.getText().trim() || '';
-    return (
-      <div className="modal-overlay" onClick={onClose} style={{ padding: 0 }}>
-        <div style={{ width: '100vw', height: '100vh', background: '#000', position: 'relative', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
-          <button 
-            onClick={onClose}
-            style={{ position: 'absolute', top: 16, right: 16, zIndex: 100, background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: 0.7 }}
-          >
-            <X size={20} />
-          </button>
-          
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            {card.type === 'pdf' ? (
-              <iframe src={`${url}#toolbar=0`} style={{ width: '100%', height: '100%', border: 'none' }} title={title} />
-            ) : (
-              <img src={url} alt={title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-            )}
-          </div>
 
-          {textContent && (
-            <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', color: 'white', padding: '8px 16px', borderRadius: 8, maxWidth: '80%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 14 }}>
-              {textContent}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   // ---- Focus / Zen reading mode ----
   if (focusMode) {
@@ -224,46 +195,32 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
     <div ref={overlayRef} className="modal-overlay" onClick={onClose}>
       <div className="editor-modal" onClick={e => e.stopPropagation()}>
         <div className="editor-modal-header">
-          {isEditing ? (
-            <input
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder="Card title..."
-            />
-          ) : (
-            <div style={{ flex: 1, fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>
-              {title || 'Untitled'}
-            </div>
-          )}
+          <input
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="Card title..."
+          />
           <div className="editor-top-actions">
-            {isEditing ? (
-              <>
-                <div className="editor-top-color-picker">
-                  {CARD_COLORS.map(c => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      className={`editor-top-color-dot${color === c.value ? ' active' : ''}`}
-                      style={{ background: c.value }}
-                      onClick={() => setColor(c.value)}
-                      title={c.name}
-                    />
-                  ))}
-                </div>
-                <button className="editor-top-action-btn" onClick={handleSave}>Save Changes</button>
-              </>
-            ) : (
-              <button className="editor-top-action-btn" onClick={() => setIsEditing(true)}>Edit Card</button>
-            )}
-            {!isEditing && (
-              <button
-                className="editor-top-action-btn focus-mode-btn"
-                onClick={toggleFocusMode}
-                title="Focus mode — distraction-free reading (hides browser UI)"
-              >
-                <BookOpen size={14} /> Focus
-              </button>
-            )}
+            <div className="editor-top-color-picker">
+              {CARD_COLORS.map(c => (
+                <button
+                  key={c.value}
+                  type="button"
+                  className={`editor-top-color-dot${color === c.value ? ' active' : ''}`}
+                  style={{ background: c.value }}
+                  onClick={() => setColor(c.value)}
+                  title={c.name}
+                />
+              ))}
+            </div>
+            <button className="editor-top-action-btn" onClick={handleSave}>Save Changes</button>
+            <button
+              className="editor-top-action-btn focus-mode-btn"
+              onClick={toggleFocusMode}
+              title="Focus mode — distraction-free reading (hides browser UI)"
+            >
+              <BookOpen size={14} /> Focus
+            </button>
             <button className="editor-close-btn" onClick={onClose}><X size={16} /></button>
           </div>
         </div>
