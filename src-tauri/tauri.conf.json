@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "cardcanvas",
-  "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "productName": "CardCanvas",
+  "version": "1.0.0",
+  "identifier": "com.cardcanvas.app",
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "CardCanvas",
-        "width": 800,
-        "height": 600,
+        "width": 1200,
+        "height": 800,
         "resizable": true,
         "fullscreen": false
       }

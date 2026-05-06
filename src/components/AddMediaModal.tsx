@@ -1,6 +1,8 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Upload, Clipboard, Link2 } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
+import { useAuth } from '@/components/AuthContext';
 import { inferMediaType } from '@/lib/mediaType';
 
 interface Props {
@@ -9,17 +11,27 @@ interface Props {
   onConfirm: (url: string, uploadMime?: string) => void;
 }
 
-async function uploadFile(file: File): Promise<{ id: string; mimetype: string } | null> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const res = await fetch('/api/upload', { method: 'POST', body: formData });
-  if (!res.ok) return null;
-  const data = await res.json();
-  if (!data.id) return null;
-  return { id: data.id, mimetype: data.mimetype || file.type || 'application/octet-stream' };
+async function uploadFile(file: File, userId: string): Promise<{ url: string; mimetype: string } | null> {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const data = Array.from(new Uint8Array(arrayBuffer));
+    
+    const url: string = await invoke('upload_media', {
+      userId,
+      filename: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      data
+    });
+    
+    return { url, mimetype: file.type || 'application/octet-stream' };
+  } catch (err) {
+    console.error('Upload failed:', err);
+    return null;
+  }
 }
 
 export default function AddMediaModal({ open, onClose, onConfirm }: Props) {
+  const { user } = useAuth();
   const [url, setUrl] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
   const [uploadMime, setUploadMime] = useState<string | undefined>();
@@ -42,14 +54,13 @@ export default function AddMediaModal({ open, onClose, onConfirm }: Props) {
   }, [open, reset]);
 
   const handleFile = useCallback(async (file: File | null | undefined) => {
-    if (!file) return;
-    const up = await uploadFile(file);
+    if (!file || !user) return;
+    const up = await uploadFile(file, user.id);
     if (!up) return;
-    const u = `/api/upload?id=${up.id}`;
-    setUrl(u);
+    setUrl(up.url);
     setUploadMime(up.mimetype);
-    setPreview(u);
-  }, []);
+    setPreview(up.url);
+  }, [user]);
 
   const handleClipboardData = useCallback(
     async (e: ClipboardEvent) => {

@@ -1,6 +1,7 @@
 mod db;
 mod auth;
 mod workspace;
+mod media;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -32,8 +33,23 @@ pub fn run() {
         workspace::delete_board,
         workspace::rename_board,
         workspace::get_whiteboard,
-        workspace::update_whiteboard
+        workspace::update_whiteboard,
+        media::upload_media
     ])
+    .register_uri_scheme_protocol("media", |_app, request| {
+        let uri = request.uri().to_string();
+        match media::get_media_handler(_app, &uri) {
+            Ok((data, mime_type)) => tauri::http::Response::builder()
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Content-Type", mime_type)
+                .body(data)
+                .unwrap(),
+            Err(_) => tauri::http::Response::builder()
+                .status(404)
+                .body(vec![])
+                .unwrap(),
+        }
+    })
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

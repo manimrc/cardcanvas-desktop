@@ -12,6 +12,8 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { Card } from '@/types';
 import { CARD_COLORS } from '@/lib/constants';
+import { invoke } from '@tauri-apps/api/core';
+import { useAuth } from '@/components/AuthContext';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
@@ -27,6 +29,7 @@ interface Props {
 }
 
 export default function RichTextEditor({ card, onSave, onClose }: Props) {
+  const { user } = useAuth();
   const [title, setTitle] = useState(card.title);
   const [color, setColor] = useState(card.color);
   const [showLinkInput, setShowLinkInput] = useState(false);
@@ -127,18 +130,20 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('cardId', card.id);
+    if (!file || !user) return;
     
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.id) {
-        setUrl(`/api/upload?id=${data.id}`);
-      }
+      const arrayBuffer = await file.arrayBuffer();
+      const data = Array.from(new Uint8Array(arrayBuffer));
+      
+      const newUrl: string = await invoke('upload_media', {
+        userId: user.id,
+        filename: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        data
+      });
+      
+      setUrl(newUrl);
     } catch (err) {
       console.error('Upload failed', err);
     }
