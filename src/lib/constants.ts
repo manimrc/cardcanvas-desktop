@@ -6,6 +6,13 @@ export const CARD_COLORS = [
   { name: 'Pink', value: '#F8BBD0' },
   { name: 'Purple', value: '#E1BEE7' },
   { name: 'Orange', value: '#FFE0B2' },
+  { name: 'Teal', value: '#B2DFDB' },
+  { name: 'Indigo', value: '#C5CAE9' },
+  { name: 'Coral', value: '#FFCCBC' },
+  { name: 'Lime', value: '#DCEDC8' },
+  { name: 'Lavender', value: '#D1C4E9' },
+  { name: 'Peach', value: '#FFE0CC' },
+  { name: 'Slate', value: '#CFD8DC' },
   { name: 'White', value: '#FFFFFF' },
 ] as const;
 

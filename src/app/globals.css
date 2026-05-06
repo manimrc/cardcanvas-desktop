@@ -557,13 +557,14 @@ body {
 .editor-top-color-picker {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   padding: 0 2px;
+  flex-wrap: wrap;
 }
 
 .editor-top-color-dot {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.25);
   cursor: pointer;
@@ -634,6 +635,15 @@ body {
 .card-body ul, .card-body ol { padding-left: 16px; margin-bottom: 4px; }
 .card-body img { max-width: 100%; border-radius: 6px; }
 .card-body a { color: var(--accent); }
+.card-body table { width: 100%; border-collapse: collapse; margin: 4px 0; font-size: 12px; }
+.card-body table th, .card-body table td { border: 1px solid rgba(0,0,0,0.15); padding: 3px 6px; text-align: left; }
+.card-body table th { background: rgba(0,0,0,0.06); font-weight: 600; }
+.card-body ul[data-type="taskList"] { list-style: none; padding-left: 4px; }
+.card-body ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 4px; }
+.card-body ul[data-type="taskList"] li label input[type="checkbox"] { margin-top: 2px; }
+.card-body hr { border: none; border-top: 1px solid rgba(0,0,0,0.12); margin: 6px 0; }
+.card-body pre { background: rgba(0,0,0,0.05); padding: 6px 8px; border-radius: 4px; font-size: 11px; overflow-x: auto; }
+.card-body code { background: rgba(0,0,0,0.06); padding: 1px 3px; border-radius: 3px; font-size: 11px; }
 
 .card-link-preview {
   padding: 10px;
@@ -938,6 +948,13 @@ body {
   margin-top: 1.3em;
   margin-bottom: 0.4em;
 }
+.focus-mode-content .tiptap table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+.focus-mode-content .tiptap table th, .focus-mode-content .tiptap table td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+.focus-mode-content .tiptap table th { background: var(--bg-tertiary); font-weight: 700; }
+.focus-mode-content .tiptap ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+.focus-mode-content .tiptap ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+.focus-mode-content .tiptap ul[data-type="taskList"] li > label input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+.focus-mode-content .tiptap hr { border: none; border-top: 2px solid var(--border); margin: 20px 0; }
 .focus-mode-content .tiptap ul,
 .focus-mode-content .tiptap ol {
   margin-bottom: 1em;
@@ -1050,6 +1067,99 @@ body {
   color: var(--text-muted);
   content: attr(data-placeholder);
   float: left; height: 0; pointer-events: none;
+}
+
+/* ---- Table styles in editor ---- */
+.editor-content .tiptap table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  table-layout: auto;
+  overflow: hidden;
+}
+.editor-content .tiptap table th,
+.editor-content .tiptap table td {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+  min-width: 80px;
+  position: relative;
+}
+.editor-content .tiptap table th {
+  background: var(--bg-tertiary);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.editor-content .tiptap table td {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.editor-content .tiptap table tr:hover td {
+  background: var(--bg-secondary);
+}
+.editor-content .tiptap table .selectedCell {
+  background: rgba(var(--accent-rgb, 99, 102, 241), 0.12);
+}
+/* Column-resize handle */
+.editor-content .tiptap table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--accent);
+  cursor: col-resize;
+  z-index: 10;
+}
+.editor-content .tiptap .tableWrapper {
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+/* ---- Task list styles in editor ---- */
+.editor-content .tiptap ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0;
+}
+.editor-content .tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.editor-content .tiptap ul[data-type="taskList"] li > label {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.editor-content .tiptap ul[data-type="taskList"] li > label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.editor-content .tiptap ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+.editor-content .tiptap ul[data-type="taskList"] li[data-checked="true"] > div {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+/* ---- Horizontal rule ---- */
+.editor-content .tiptap hr {
+  border: none;
+  border-top: 2px solid var(--border);
+  margin: 16px 0;
+}
+
+/* ---- Strikethrough & mark ---- */
+.editor-content .tiptap mark {
+  background: #fef08a;
+  padding: 1px 2px;
+  border-radius: 2px;
 }
 
 .editor-footer {
@@ -1184,21 +1294,22 @@ body {
 .card-color-strip {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   padding: 0 10px 4px;
   max-height: 0;
   overflow: hidden;
   opacity: 0;
   transition: max-height 0.2s ease, opacity 0.15s ease, padding 0.2s ease;
+  flex-wrap: wrap;
 }
 .card:hover .card-color-strip {
-  max-height: 24px;
+  max-height: 40px;
   opacity: 1;
   padding: 2px 10px 4px;
 }
 .card-color-dot {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   border: 1.5px solid rgba(0, 0, 0, 0.15);
   cursor: pointer;

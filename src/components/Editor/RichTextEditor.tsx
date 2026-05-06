@@ -7,6 +7,9 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Highlight from '@tiptap/extension-highlight';
+import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import { Card } from '@/types';
 import { CARD_COLORS } from '@/lib/constants';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -15,7 +18,7 @@ import {
   Heading1, Heading2, Heading3, List, ListOrdered,
   Quote, Code, AlignLeft, AlignCenter, AlignRight,
   Link as LinkIcon, Image as ImageIcon, Highlighter, X, Undo, Redo,
-  BookOpen, Minimize2
+  BookOpen, Minimize2, Table as TableIcon
 } from 'lucide-react';
 interface Props {
   card: Card;
@@ -44,6 +47,12 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
       Link.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: 'Start typing...' }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Table.configure({ resizable: true, allowTableNodeSelection: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      TaskList,
+      TaskItem.configure({ nested: true }),
     ],
     content: card.content || '',
     immediatelyRender: false,
@@ -278,6 +287,7 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
             <div className="editor-toolbar-divider" />
             <button className={`editor-toolbar-btn${editor.isActive('link') ? ' active' : ''}`} onClick={openLinkPrompt}><LinkIcon size={15} /></button>
             <button className="editor-toolbar-btn" onClick={openImagePrompt}><ImageIcon size={15} /></button>
+            <button className="editor-toolbar-btn" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} title="Insert table"><TableIcon size={15} /></button>
             <div className="editor-toolbar-divider" />
             <button className={`editor-toolbar-btn${editor.isActive({ textAlign: 'left' }) ? ' active' : ''}`} onClick={() => editor.chain().focus().setTextAlign('left').run()}><AlignLeft size={15} /></button>
             <button className={`editor-toolbar-btn${editor.isActive({ textAlign: 'center' }) ? ' active' : ''}`} onClick={() => editor.chain().focus().setTextAlign('center').run()}><AlignCenter size={15} /></button>
