@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { invoke } from '@tauri-apps/api/core';
+import { useAuth } from '@/components/AuthContext';
 import { Lock, Mail, Eye, EyeOff, User, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
@@ -12,29 +14,20 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const { login } = useAuth();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Login failed');
-        setLoading(false);
-        return;
-      }
-
-      router.push('/');
-      router.refresh();
-    } catch {
-      setError('Something went wrong. Please try again.');
+      // Use Tauri IPC to call the Rust native 'login_user' command
+      const user = await invoke<any>('login_user', { username, password });
+      login(user);
+    } catch (err: any) {
+      // Tauri invoke errors are returned as strings
+      setError(err || 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };

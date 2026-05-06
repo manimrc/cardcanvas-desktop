@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, User, Eye, EyeOff, UserPlus, ArrowRight } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
+import { useAuth } from '@/components/AuthContext';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,6 +15,8 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
+
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,37 +30,39 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, displayName: displayName || username }),
+      const data = await invoke<any>('register_user', { 
+        username, 
+        password, 
+        displayName: displayName || username 
       });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Registration failed');
-        setLoading(false);
-        return;
-      }
 
       // Show recovery code if provided
       if (data.recoveryCode) {
         setRecoveryCode(data.recoveryCode);
+        
+        // We will delay the login context update until they click Continue
+        // But we store it temporarily
+        localStorage.setItem('temp_cc_user', JSON.stringify(data.user));
+        
         setLoading(false);
         return; // Pause the redirect
       }
 
-      router.push('/');
-      router.refresh();
-    } catch {
-      setError('Something went wrong. Please try again.');
+      login(data.user);
+    } catch (err: any) {
+      setError(err || 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };
 
   const handleContinue = () => {
-    router.push('/');
-    router.refresh();
+    const tempUser = localStorage.getItem('temp_cc_user');
+    if (tempUser) {
+      login(JSON.parse(tempUser));
+      localStorage.removeItem('temp_cc_user');
+    } else {
+      router.push('/login');
+    }
   };
 
   return (

@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { invoke } from '@tauri-apps/api/core';
+import { useAuth } from '@/components/AuthContext';
 
 // Excalidraw must be loaded client-side only (no SSR)
 const ExcalidrawWrapper = dynamic(
@@ -35,7 +37,8 @@ const ExcalidrawWrapper = dynamic(
 // Import Excalidraw CSS
 import '@excalidraw/excalidraw/index.css';
 
-export default function WhiteboardView({ isLightMode }: { isLightMode?: boolean }) {
+export default function WhiteboardView({ isLightMode, boardId = 'global' }: { isLightMode?: boolean; boardId?: string }) {
+  const { user } = useAuth();
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [initialData, setInitialData] = useState<{ elements: readonly any[]; appState: Record<string, any> } | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -43,14 +46,14 @@ export default function WhiteboardView({ isLightMode }: { isLightMode?: boolean 
   const onChangeRef = useRef<((elements: readonly any[], appState: Record<string, any>) => void) | null>(null);
 
   const saveContent = useCallback(async (elements: readonly any[], appState: Record<string, any>) => {
+    if (!user) return;
     setSaveStatus('saving');
     try {
-      await fetch('/api/whiteboard', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: JSON.stringify({ elements, appState: { viewBackgroundColor: appState.viewBackgroundColor } }),
-        }),
+      await invoke('update_whiteboard', {
+        userId: user.id,
+        boardId,
+        elements: JSON.stringify(elements),
+        appState: JSON.stringify({ viewBackgroundColor: appState.viewBackgroundColor }),
       });
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 2000);
@@ -58,7 +61,7 @@ export default function WhiteboardView({ isLightMode }: { isLightMode?: boolean 
       console.error('Failed to save whiteboard:', err);
       setSaveStatus('idle');
     }
-  }, []);
+  }, [user, boardId]);
 
   // Set up the onChange handler with debounced save
   useEffect(() => {
@@ -72,31 +75,25 @@ export default function WhiteboardView({ isLightMode }: { isLightMode?: boolean 
 
   // Load whiteboard content on mount
   useEffect(() => {
-    if (loaded) return;
-    fetch('/api/whiteboard')
-      .then(res => res.json())
+    if (loaded || !user) return;
+    
+    invoke<any>('get_whiteboard', { userId: user.id, boardId })
       .then(data => {
-        if (data.content) {
-          try {
-            const parsed = JSON.parse(data.content);
-            if (parsed.elements) {
-              setInitialData({
-                elements: parsed.elements,
-                appState: parsed.appState || {},
-              });
-            }
-          } catch {
-            // Content is old HTML format — start fresh
-            setInitialData({ elements: [], appState: {} });
-          }
+        try {
+          const elements = JSON.parse(data.elements || '[]');
+          const appState = JSON.parse(data.appState || '{}');
+          setInitialData({ elements, appState });
+        } catch {
+          setInitialData({ elements: [], appState: {} });
         }
         setLoaded(true);
       })
       .catch(err => {
         console.error('Failed to load whiteboard:', err);
+        setInitialData({ elements: [], appState: {} });
         setLoaded(true);
       });
-  }, [loaded]);
+  }, [loaded, user, boardId]);
 
   // Keyboard shortcut: Cmd+S
   useEffect(() => {

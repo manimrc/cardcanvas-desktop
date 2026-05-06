@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, User, Eye, EyeOff, KeyRound, ArrowRight } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -25,23 +26,16 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, recoveryCode, newPassword }),
+      await invoke('reset_password', { 
+        username, 
+        recoveryCode, 
+        newPassword 
       });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Password reset failed');
-        setLoading(false);
-        return;
-      }
 
       setSuccess(true);
       setLoading(false);
-    } catch {
-      setError('Something went wrong. Please try again.');
+    } catch (err: any) {
+      setError(err || 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };

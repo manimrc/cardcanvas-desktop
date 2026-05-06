@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { invoke } from '@tauri-apps/api/core';
+import { useAuth } from '@/components/AuthContext';
 import { Card, Board, Folder } from '@/types';
 import Sidebar, { type SidebarView } from '@/components/Sidebar/Sidebar';
 import Toolbar from '@/components/Toolbar/Toolbar';
@@ -31,7 +33,8 @@ interface UserInfo {
 
 export default function Home() {
   const router = useRouter();
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const { user, logout } = useAuth();
+  
   const [folders, setFolders] = useState<Folder[]>([]);
   const [boards, setBoards] = useState<Board[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
@@ -47,19 +50,9 @@ export default function Home() {
   const [isLightMode, setIsLightMode] = useState(() => readStorage('cc_isLightMode', true));
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch current user on mount
-  useEffect(() => {
-    fetch('/api/auth/me')
-      .then(r => r.json())
-      .then(data => { if (data.user) setUser(data.user); })
-      .catch(() => {});
-  }, []);
-
-  const handleLogout = useCallback(async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
-    router.refresh();
-  }, [router]);
+  const handleLogout = useCallback(() => {
+    logout();
+  }, [logout]);
 
   const workspaceScrollRef = useRef<Record<string, { left: number; top: number }>>({});
   const workspaceCanvasRef = useRef<InfiniteCanvasHandle>(null);
@@ -83,22 +76,22 @@ export default function Home() {
   }, [sidebarView]);
 
   const fetchAllCards = useCallback(async () => {
+    if (!user) return;
     try {
-      const res = await fetch('/api/cards?all=1');
-      const data = await res.json();
+      const data: any = await invoke('get_all_cards', { userId: user.id });
       setAllCards(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch all cards:', err);
     }
-  }, []);
+  }, [user]);
 
   const activeBoardIdRef = useRef(activeBoardId);
   activeBoardIdRef.current = activeBoardId;
 
   const fetchTree = useCallback(async () => {
+    if (!user) return;
     try {
-      const res = await fetch('/api/folders');
-      const data = await res.json();
+      const data: any = await invoke('get_tree', { userId: user.id });
       setFolders(data.folders || []);
       setBoards(data.boards || []);
       if (data.boards?.length > 0) {
@@ -110,23 +103,22 @@ export default function Home() {
       console.error('Failed to fetch tree:', err);
     }
     setLoading(false);
-  }, []);
+  }, [user]);
 
   const fetchCards = useCallback(async () => {
-    if (!activeBoardId) {
+    if (!user || !activeBoardId) {
       setCards([]);
       return;
     }
     try {
-      const res = await fetch(`/api/cards?boardId=${activeBoardId}`);
-      const data = await res.json();
+      const data: any = await invoke('get_cards', { userId: user.id, boardId: activeBoardId });
       setCards(Array.isArray(data) ? data : []);
       const board = boards.find(b => b.id === activeBoardId);
       setActiveBoard(board || null);
     } catch (err) {
       console.error('Failed to fetch cards:', err);
     }
-  }, [activeBoardId, boards]);
+  }, [user, activeBoardId, boards]);
 
   useEffect(() => {
     fetchTree();
@@ -197,7 +189,7 @@ export default function Home() {
   }, []);
 
   const createCard = useCallback(async (type: string, x: number, y: number, url?: string) => {
-    if (!activeBoardId) return;
+    if (!user || !activeBoardId) return;
 
     const defaults: Record<string, Partial<Card>> = {
       richtext: { title: 'New Note', content: '<p>Start typing...</p>', color: '#FFF9C4' },
@@ -209,116 +201,104 @@ export default function Home() {
     const d = defaults[type] || defaults.richtext;
     if (url) d.url = url;
 
-    // Resolve collisions for the new card
     const w = d.width ?? 280;
     const h = d.height ?? 200;
     const resolved = findNonOverlappingPosition('__new__', x, y, w, h, cards);
+    
+    // UUID v4 format
+    const newId = crypto.randomUUID();
 
     try {
-      const res = await fetch('/api/cards', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ boardId: activeBoardId, type, x: resolved.x, y: resolved.y, ...d }),
-      });
-      if (!res.ok) {
-        console.error('Server returned error:', await res.text());
-        return;
-      }
-      const card = await res.json();
+      const cardData = { id: newId, boardId: activeBoardId, type, x: resolved.x, y: resolved.y, isLocked: false, ...d };
+      const card: any = await invoke('create_card', { userId: user.id, card: cardData });
       setCards(prev => [...prev, card]);
       setAllCards(prev => [...prev, card]);
     } catch (err) {
       console.error('Failed to create card:', err);
     }
-  }, [activeBoardId, cards]);
+  }, [user, activeBoardId, cards]);
 
   const updateCard = useCallback(async (update: Partial<Card>) => {
+    if (!user) return;
     setCards(prev => prev.map(c => (c.id === update.id ? { ...c, ...update } : c)));
     setAllCards(prev => prev.map(c => (c.id === update.id ? { ...c, ...update } : c)));
     try {
-      await fetch('/api/cards', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(update),
-      });
+      // Find full card to send
+      const fullCard = cards.find(c => c.id === update.id) || allCards.find(c => c.id === update.id);
+      if (fullCard) {
+        await invoke('update_card', { userId: user.id, card: { ...fullCard, ...update } });
+      }
     } catch (err) {
       console.error('Failed to update card:', err);
     }
-  }, []);
+  }, [user, cards, allCards]);
 
   const deleteCard = useCallback(async (id: string) => {
+    if (!user || !activeBoardId) return;
     setCards(prev => prev.filter(c => c.id !== id));
     setAllCards(prev => prev.filter(c => c.id !== id));
     try {
-      await fetch(`/api/cards?id=${id}`, { method: 'DELETE' });
+      await invoke('delete_card', { userId: user.id, boardId: activeBoardId, cardId: id });
     } catch (err) {
       console.error('Failed to delete card:', err);
     }
-  }, []);
+  }, [user, activeBoardId]);
 
   const createFolder = useCallback(async (parentId: string | null) => {
+    if (!user) return;
     try {
-      await fetch('/api/folders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parentId, name: 'New Folder' }),
-      });
+      await invoke('create_folder', { userId: user.id, name: 'New Folder' });
       fetchTree();
     } catch (err) {
       console.error(err);
     }
-  }, [fetchTree]);
+  }, [user, fetchTree]);
 
   const deleteFolder = useCallback(
     async (id: string) => {
+      if (!user) return;
       try {
-        await fetch(`/api/folders?id=${id}`, { method: 'DELETE' });
+        await invoke('delete_folder', { userId: user.id, folderId: id });
         fetchTree();
       } catch (err) {
         console.error(err);
       }
     },
-    [fetchTree]
+    [user, fetchTree]
   );
 
   const renameFolder = useCallback(
     async (id: string, name: string) => {
+      if (!user) return;
       try {
-        await fetch('/api/folders', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, name }),
-        });
+        await invoke('rename_folder', { userId: user.id, folderId: id, name });
         fetchTree();
       } catch (err) {
         console.error(err);
       }
     },
-    [fetchTree]
+    [user, fetchTree]
   );
 
   const createBoard = useCallback(
     async (folderId: string) => {
+      if (!user) return;
       try {
-        const res = await fetch('/api/boards', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ folderId, name: 'Untitled Board' }),
-        });
-        const board = await res.json();
+        const board: any = await invoke('create_board', { userId: user.id, folderId: folderId || null, name: 'Untitled Board' });
         await fetchTree();
         setActiveBoardId(board.id);
       } catch (err) {
         console.error(err);
       }
     },
-    [fetchTree]
+    [user, fetchTree]
   );
 
   const deleteBoard = useCallback(
     async (id: string) => {
+      if (!user) return;
       try {
-        await fetch(`/api/boards?id=${id}`, { method: 'DELETE' });
+        await invoke('delete_board', { userId: user.id, boardId: id });
         if (activeBoardId === id) setActiveBoardId(null);
         fetchTree();
         void fetchAllCards();
@@ -326,23 +306,20 @@ export default function Home() {
         console.error(err);
       }
     },
-    [activeBoardId, fetchTree, fetchAllCards]
+    [user, activeBoardId, fetchTree, fetchAllCards]
   );
 
   const renameBoard = useCallback(
     async (id: string, name: string) => {
+      if (!user) return;
       try {
-        await fetch('/api/boards', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, name }),
-        });
+        await invoke('rename_board', { userId: user.id, boardId: id, name });
         fetchTree();
       } catch (err) {
         console.error(err);
       }
     },
-    [fetchTree]
+    [user, fetchTree]
   );
 
   const handleBoardNameChange = useCallback(
@@ -469,7 +446,7 @@ export default function Home() {
         )}
 
         {isWhiteboard ? (
-          <WhiteboardView isLightMode={isLightMode} />
+          <WhiteboardView isLightMode={isLightMode} boardId={activeBoardId || 'global'} />
         ) : sidebarView === 'tags' ? (
           <TagGridView
             cards={filteredTagCards}
