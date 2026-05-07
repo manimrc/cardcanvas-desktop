@@ -209,7 +209,7 @@ export default function Home() {
     const newId = crypto.randomUUID();
 
     try {
-      const cardData = { id: newId, boardId: activeBoardId, type, x: resolved.x, y: resolved.y, isLocked: false, ...d };
+      const cardData = { id: newId, boardId: activeBoardId, type, x: resolved.x, y: resolved.y, width: w, height: h, isLocked: false, ...d };
       const card: any = await invoke('create_card', { userId: user.id, card: cardData });
       setCards(prev => [...prev, card]);
       setAllCards(prev => [...prev, card]);

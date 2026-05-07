@@ -169,25 +169,18 @@ export default function CanvasCard({
         );
       case 'image':
         return (
-          <div className="card-image-container">
-            {card.url ? <img src={card.url} alt={card.title} /> : <div className="card-body" dangerouslySetInnerHTML={{ __html: card.content }} />}
+          <div className="card-image-container" style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+            {card.url ? <img src={card.url} alt={card.title} style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', display: 'block' }} /> : <div className="card-body" dangerouslySetInnerHTML={{ __html: card.content }} />}
           </div>
         );
       case 'pdf':
         return (
-          <div className="card-pdf-container" style={{ padding: 0, overflow: 'hidden' }}>
-            {card.url ? (
-              <iframe
-                src={`${card.url}#toolbar=0&navpanes=0&scrollbar=0`}
-                style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
-                title={card.title}
-              />
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8 }}>
-                <div className="card-pdf-icon">📄</div>
-                <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.5)' }}>{card.title || 'PDF Document'}</div>
-              </div>
-            )}
+          <div className="card-pdf-container" style={{ padding: 0, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.02)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+              <div className="card-pdf-icon" style={{ fontSize: 48, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}>📄</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'center', padding: '0 12px' }}>{card.title || 'PDF Document'}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Double-click to view</div>
+            </div>
           </div>
         );
       case 'article':
@@ -213,6 +206,8 @@ export default function CanvasCard({
         top: card.y,
         width: card.width,
         height: card.height,
+        minWidth: 0,
+        minHeight: 0,
         zIndex: card.zIndex,
         backgroundColor: card.color,
       };

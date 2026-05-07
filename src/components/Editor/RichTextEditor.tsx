@@ -205,6 +205,27 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
     );
   }
 
+  // ---- Immersive Fullscreen Media Viewer ----
+  if ((card.type === 'image' || card.type === 'pdf') && url) {
+    return (
+      <div className="modal-overlay" style={{ background: 'rgba(0,0,0,0.9)', zIndex: 100000 }} onClick={onClose}>
+        <button 
+          onClick={onClose}
+          style={{ position: 'absolute', top: 20, right: 24, background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 100001 }}
+        >
+          <X size={24} />
+        </button>
+        <div style={{ width: '90vw', height: '90vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
+          {card.type === 'pdf' ? (
+            <iframe src={url} style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8, background: '#fff' }} title={title} />
+          ) : (
+            <img src={url} alt={title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }} />
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div ref={overlayRef} className="modal-overlay" onClick={onClose}>
       <div className="editor-modal" onClick={e => e.stopPropagation()}>

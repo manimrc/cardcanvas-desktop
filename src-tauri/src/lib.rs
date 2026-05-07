@@ -38,7 +38,7 @@ pub fn run() {
     ])
     .register_uri_scheme_protocol("media", |_app, request| {
         let uri = request.uri().to_string();
-        match media::get_media_handler(_app, &uri) {
+        match media::get_media_handler(_app.app_handle(), &uri) {
             Ok((data, mime_type)) => tauri::http::Response::builder()
                 .header("Access-Control-Allow-Origin", "*")
                 .header("Content-Type", mime_type)

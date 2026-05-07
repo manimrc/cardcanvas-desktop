@@ -10,25 +10,30 @@ pub struct Folder {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Board {
     pub id: String,
-    pub folderId: Option<String>,
+    pub folder_id: Option<String>,
     pub name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Card {
     pub id: String,
-    pub boardId: String,
-    pub r#type: String, // using r#type because 'type' is a Rust keyword
+    pub board_id: String,
+    #[serde(rename = "type")]
+    pub r#type: String,
+    pub title: Option<String>,
+    pub url: Option<String>,
     pub content: Option<String>,
     pub x: f64,
     pub y: f64,
-    pub width: f64,
-    pub height: f64,
+    pub width: Option<f64>,
+    pub height: Option<f64>,
     pub color: Option<String>,
-    pub tags: Option<String>,
-    pub isLocked: bool,
+    pub tags: Option<Vec<String>>,
+    pub is_locked: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -53,7 +58,7 @@ pub fn get_tree(app: AppHandle, user_id: String) -> Result<FolderTree, String> {
     let boards: Vec<Board> = board_stmt.query_map([], |row| {
         Ok(Board {
             id: row.get(0)?,
-            folderId: row.get(1)?,
+            folder_id: row.get(1)?,
             name: row.get(2)?,
         })
     }).map_err(|e| e.to_string())?.filter_map(Result::ok).collect();
@@ -81,28 +86,33 @@ pub fn create_board(app: AppHandle, user_id: String, folder_id: Option<String>, 
         rusqlite::params![&id, &folder_id, &name],
     ).map_err(|e| e.to_string())?;
     
-    Ok(Board { id, folderId: folder_id, name })
+    Ok(Board { id, folder_id, name })
 }
 
 #[tauri::command]
 pub fn get_cards(app: AppHandle, user_id: String, board_id: String) -> Result<Vec<Card>, String> {
     let conn = get_user_db(&app, &user_id).map_err(|e| e.to_string())?;
-    let mut stmt = conn.prepare("SELECT id, boardId, type, content, x, y, width, height, color, tags, isLocked FROM cards WHERE boardId = ?1").map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare("SELECT id, boardId, type, title, url, content, x, y, width, height, color, tags, isLocked FROM cards WHERE boardId = ?1").map_err(|e| e.to_string())?;
     
     let cards: Vec<Card> = stmt.query_map([&board_id], |row| {
-        let is_locked: i32 = row.get(10)?;
+        let is_locked: i32 = row.get(12)?;
+        let tags_str: Option<String> = row.get(11)?;
+        let tags = tags_str.and_then(|s| serde_json::from_str(&s).ok());
+        
         Ok(Card {
             id: row.get(0)?,
-            boardId: row.get(1)?,
+            board_id: row.get(1)?,
             r#type: row.get(2)?,
-            content: row.get(3)?,
-            x: row.get(4)?,
-            y: row.get(5)?,
-            width: row.get(6)?,
-            height: row.get(7)?,
-            color: row.get(8)?,
-            tags: row.get(9)?,
-            isLocked: is_locked == 1,
+            title: row.get(3)?,
+            url: row.get(4)?,
+            content: row.get(5)?,
+            x: row.get(6)?,
+            y: row.get(7)?,
+            width: row.get(8)?,
+            height: row.get(9)?,
+            color: row.get(10)?,
+            tags,
+            is_locked: is_locked == 1,
         })
     }).map_err(|e| e.to_string())?.filter_map(Result::ok).collect();
 
@@ -112,11 +122,12 @@ pub fn get_cards(app: AppHandle, user_id: String, board_id: String) -> Result<Ve
 #[tauri::command]
 pub fn create_card(app: AppHandle, user_id: String, card: Card) -> Result<Card, String> {
     let conn = get_user_db(&app, &user_id).map_err(|e| e.to_string())?;
-    let is_locked = if card.isLocked { 1 } else { 0 };
+    let is_locked = if card.is_locked { 1 } else { 0 };
+    let tags_str = serde_json::to_string(&card.tags).unwrap_or_else(|_| "[]".to_string());
     
     conn.execute(
-        "INSERT INTO cards (id, boardId, type, content, x, y, width, height, color, tags, isLocked) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
-        rusqlite::params![&card.id, &card.boardId, &card.r#type, &card.content, &card.x, &card.y, &card.width, &card.height, &card.color, &card.tags, is_locked],
+        "INSERT INTO cards (id, boardId, type, title, url, content, x, y, width, height, color, tags, isLocked) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+        rusqlite::params![&card.id, &card.board_id, &card.r#type, &card.title, &card.url, &card.content, &card.x, &card.y, &card.width, &card.height, &card.color, tags_str, is_locked],
     ).map_err(|e| e.to_string())?;
     
     Ok(card)
@@ -125,11 +136,12 @@ pub fn create_card(app: AppHandle, user_id: String, card: Card) -> Result<Card, 
 #[tauri::command]
 pub fn update_card(app: AppHandle, user_id: String, card: Card) -> Result<Card, String> {
     let conn = get_user_db(&app, &user_id).map_err(|e| e.to_string())?;
-    let is_locked = if card.isLocked { 1 } else { 0 };
+    let is_locked = if card.is_locked { 1 } else { 0 };
+    let tags_str = serde_json::to_string(&card.tags).unwrap_or_else(|_| "[]".to_string());
     
     conn.execute(
-        "UPDATE cards SET type = ?1, content = ?2, x = ?3, y = ?4, width = ?5, height = ?6, color = ?7, tags = ?8, isLocked = ?9 WHERE id = ?10 AND boardId = ?11",
-        rusqlite::params![&card.r#type, &card.content, &card.x, &card.y, &card.width, &card.height, &card.color, &card.tags, is_locked, &card.id, &card.boardId],
+        "UPDATE cards SET type = ?1, title = ?2, url = ?3, content = ?4, x = ?5, y = ?6, width = ?7, height = ?8, color = ?9, tags = ?10, isLocked = ?11 WHERE id = ?12 AND boardId = ?13",
+        rusqlite::params![&card.r#type, &card.title, &card.url, &card.content, &card.x, &card.y, &card.width, &card.height, &card.color, tags_str, is_locked, &card.id, &card.board_id],
     ).map_err(|e| e.to_string())?;
     
     Ok(card)
@@ -177,22 +189,27 @@ pub fn rename_board(app: AppHandle, user_id: String, board_id: String, name: Str
 #[tauri::command]
 pub fn get_all_cards(app: AppHandle, user_id: String) -> Result<Vec<Card>, String> {
     let conn = get_user_db(&app, &user_id).map_err(|e| e.to_string())?;
-    let mut stmt = conn.prepare("SELECT id, boardId, type, content, x, y, width, height, color, tags, isLocked FROM cards").map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare("SELECT id, boardId, type, title, url, content, x, y, width, height, color, tags, isLocked FROM cards").map_err(|e| e.to_string())?;
     
     let cards: Vec<Card> = stmt.query_map([], |row| {
-        let is_locked: i32 = row.get(10)?;
+        let is_locked: i32 = row.get(12)?;
+        let tags_str: Option<String> = row.get(11)?;
+        let tags = tags_str.and_then(|s| serde_json::from_str(&s).ok());
+        
         Ok(Card {
             id: row.get(0)?,
-            boardId: row.get(1)?,
+            board_id: row.get(1)?,
             r#type: row.get(2)?,
-            content: row.get(3)?,
-            x: row.get(4)?,
-            y: row.get(5)?,
-            width: row.get(6)?,
-            height: row.get(7)?,
-            color: row.get(8)?,
-            tags: row.get(9)?,
-            isLocked: is_locked == 1,
+            title: row.get(3)?,
+            url: row.get(4)?,
+            content: row.get(5)?,
+            x: row.get(6)?,
+            y: row.get(7)?,
+            width: row.get(8)?,
+            height: row.get(9)?,
+            color: row.get(10)?,
+            tags,
+            is_locked: is_locked == 1,
         })
     }).map_err(|e| e.to_string())?.filter_map(Result::ok).collect();
 

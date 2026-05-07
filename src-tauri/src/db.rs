@@ -74,6 +74,8 @@ pub fn get_user_db(app: &AppHandle, user_id: &str) -> Result<Connection> {
             id TEXT PRIMARY KEY,
             boardId TEXT NOT NULL,
             type TEXT NOT NULL,
+            title TEXT,
+            url TEXT,
             content TEXT,
             x REAL NOT NULL,
             y REAL NOT NULL,
@@ -103,6 +105,13 @@ pub fn get_user_db(app: &AppHandle, user_id: &str) -> Result<Connection> {
             FOREIGN KEY (boardId) REFERENCES boards(id) ON DELETE CASCADE
         );"
     )?;
+
+    // Handle migrations for existing DBs safely
+    let _ = conn.execute("ALTER TABLE cards ADD COLUMN title TEXT", []);
+    let _ = conn.execute("ALTER TABLE cards ADD COLUMN url TEXT", []);
+    
+    // Ensure 'global' board exists for whiteboard backward compatibility
+    let _ = conn.execute("INSERT OR IGNORE INTO boards (id, folderId, name) VALUES ('global', NULL, 'Global Whiteboard')", []);
 
     Ok(conn)
 }
