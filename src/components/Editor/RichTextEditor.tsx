@@ -22,6 +22,7 @@ import {
   Link as LinkIcon, Image as ImageIcon, Highlighter, X, Undo, Redo,
   BookOpen, Minimize2, Table as TableIcon
 } from 'lucide-react';
+
 interface Props {
   card: Card;
   onSave: (card: Partial<Card>) => void;
@@ -217,7 +218,7 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
         </button>
         <div style={{ width: '90vw', height: '90vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
           {card.type === 'pdf' ? (
-            <iframe src={url} style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8, background: '#fff' }} title={title} />
+            <iframe src={`${url}#view=FitH&pagemode=thumbs`} style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8, background: '#fff' }} title={title} />
           ) : (
             <img src={url} alt={title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }} />
           )}
