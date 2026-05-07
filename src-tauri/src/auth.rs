@@ -5,16 +5,18 @@ use uuid::Uuid;
 use crate::db::get_master_db;
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: String,
     pub username: String,
-    pub displayName: String,
+    pub display_name: String,
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RegisterResponse {
     pub user: User,
-    pub recoveryCode: String,
+    pub recovery_code: String,
 }
 
 #[tauri::command]
@@ -55,9 +57,9 @@ pub fn register_user(app: AppHandle, username: String, password: String, display
         user: User {
             id,
             username: username_lower,
-            displayName: name,
+            display_name: name,
         },
-        recoveryCode: recovery_code,
+        recovery_code,
     })
 }
 
@@ -82,7 +84,7 @@ pub fn login_user(app: AppHandle, username: String, password: String) -> Result<
                 Ok(User {
                     id,
                     username: username_lower,
-                    displayName: display_name,
+                    display_name,
                 })
             } else {
                 Err("Invalid username or password".to_string())

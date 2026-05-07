@@ -3,16 +3,24 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { invoke } from '@tauri-apps/api/core';
 import { useAuth } from '@/components/AuthContext';
+import type { AppState, ExcalidrawInitialDataState } from '@excalidraw/excalidraw/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+
+type WhiteboardScene = ExcalidrawInitialDataState;
+
+interface WhiteboardData {
+  elements: string;
+  appState: string;
+}
 
 // Excalidraw must be loaded client-side only (no SSR)
 const ExcalidrawWrapper = dynamic(
   () => import('@excalidraw/excalidraw').then((mod) => {
     const { Excalidraw } = mod;
 
-    // eslint-disable-next-line react/display-name
     return function ExcalidrawComponent(props: {
-      initialData: { elements: readonly any[]; appState: Record<string, any> } | null;
-      onChangeRef: React.MutableRefObject<((elements: readonly any[], appState: Record<string, any>) => void) | null>;
+      initialData: WhiteboardScene | null;
+      onChangeRef: React.MutableRefObject<((elements: readonly ExcalidrawElement[], appState: AppState) => void) | null>;
       theme: string;
     }) {
       return (
@@ -39,15 +47,13 @@ import '@excalidraw/excalidraw/index.css';
 
 export default function WhiteboardView({ isLightMode, boardId = 'global' }: { isLightMode?: boolean; boardId?: string }) {
   const { user } = useAuth();
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [initialData, setInitialData] = useState<{ elements: readonly any[]; appState: Record<string, any> } | null>(null);
+  const [initialData, setInitialData] = useState<WhiteboardScene | null>(null);
   const [loaded, setLoaded] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onChangeRef = useRef<((elements: readonly any[], appState: Record<string, any>) => void) | null>(null);
+  const onChangeRef = useRef<((elements: readonly ExcalidrawElement[], appState: AppState) => void) | null>(null);
 
-  const saveContent = useCallback(async (elements: readonly any[], appState: Record<string, any>) => {
+  const saveContent = useCallback(async (elements: readonly ExcalidrawElement[], appState: AppState) => {
     if (!user) return;
-    setSaveStatus('saving');
     try {
       await invoke('update_whiteboard', {
         userId: user.id,
@@ -55,11 +61,8 @@ export default function WhiteboardView({ isLightMode, boardId = 'global' }: { is
         elements: JSON.stringify(elements),
         appState: JSON.stringify({ viewBackgroundColor: appState.viewBackgroundColor }),
       });
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (err) {
       console.error('Failed to save whiteboard:', err);
-      setSaveStatus('idle');
     }
   }, [user, boardId]);
 
@@ -73,15 +76,19 @@ export default function WhiteboardView({ isLightMode, boardId = 'global' }: { is
     };
   }, [saveContent]);
 
-  // Load whiteboard content on mount
+  // Load whiteboard content whenever the active board changes.
   useEffect(() => {
-    if (loaded || !user) return;
+    if (!user) return;
+    let cancelled = false;
+    setLoaded(false);
+    setInitialData(null);
     
-    invoke<any>('get_whiteboard', { userId: user.id, boardId })
+    invoke<WhiteboardData>('get_whiteboard', { userId: user.id, boardId })
       .then(data => {
+        if (cancelled) return;
         try {
-          const elements = JSON.parse(data.elements || '[]');
-          const appState = JSON.parse(data.appState || '{}');
+          const elements = JSON.parse(data.elements || '[]') as readonly ExcalidrawElement[];
+          const appState = JSON.parse(data.appState || '{}') as ExcalidrawInitialDataState['appState'];
           setInitialData({ elements, appState });
         } catch {
           setInitialData({ elements: [], appState: {} });
@@ -89,11 +96,15 @@ export default function WhiteboardView({ isLightMode, boardId = 'global' }: { is
         setLoaded(true);
       })
       .catch(err => {
+        if (cancelled) return;
         console.error('Failed to load whiteboard:', err);
         setInitialData({ elements: [], appState: {} });
         setLoaded(true);
       });
-  }, [loaded, user, boardId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [user, boardId]);
 
   // Keyboard shortcut: Cmd+S
   useEffect(() => {

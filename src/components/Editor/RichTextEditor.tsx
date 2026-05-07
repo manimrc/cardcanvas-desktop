@@ -1,7 +1,13 @@
 'use client';
-import { useEditor, EditorContent } from '@tiptap/react';
+import {
+  useEditor,
+  EditorContent,
+  NodeViewWrapper,
+  ReactNodeViewRenderer,
+  type NodeViewProps,
+} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Image from '@tiptap/extension-image';
+import TiptapImage from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
@@ -20,16 +26,108 @@ import {
   Heading1, Heading2, Heading3, List, ListOrdered,
   Quote, Code, AlignLeft, AlignCenter, AlignRight,
   Link as LinkIcon, Image as ImageIcon, Highlighter, X, Undo, Redo,
-  BookOpen, Minimize2, Table as TableIcon
+  BookOpen, Minimize2, Table as TableIcon, Upload
 } from 'lucide-react';
 
 interface Props {
   card: Card;
+  mode?: 'preview' | 'edit';
   onSave: (card: Partial<Card>) => void;
   onClose: () => void;
 }
 
-export default function RichTextEditor({ card, onSave, onClose }: Props) {
+function ResizableImageView({ node, selected, updateAttributes }: NodeViewProps) {
+  const imageRef = useRef<HTMLImageElement>(null);
+  const width = node.attrs.width ? Number(node.attrs.width) : undefined;
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const rect = imageRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const startX = e.clientX;
+    const startWidth = rect.width;
+
+    const handleMove = (ev: MouseEvent) => {
+      const nextWidth = Math.max(80, Math.round(startWidth + ev.clientX - startX));
+      updateAttributes({ width: nextWidth });
+    };
+
+    const handleUp = () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  }, [updateAttributes]);
+
+  return (
+    <NodeViewWrapper
+      as="span"
+      style={{
+        display: 'inline-block',
+        position: 'relative',
+        maxWidth: '100%',
+        lineHeight: 0,
+        outline: selected ? '2px solid var(--accent)' : 'none',
+        borderRadius: 6,
+      }}
+    >
+      <img
+        ref={imageRef}
+        src={node.attrs.src}
+        alt={node.attrs.alt || ''}
+        title={node.attrs.title || undefined}
+        style={{
+          width: width ? `${width}px` : undefined,
+          maxWidth: '100%',
+          height: 'auto',
+          display: 'block',
+          borderRadius: 6,
+        }}
+        draggable={false}
+      />
+      <button
+        type="button"
+        aria-label="Resize image"
+        onMouseDown={handleResizeStart}
+        style={{
+          position: 'absolute',
+          right: -6,
+          bottom: -6,
+          width: 14,
+          height: 14,
+          border: '1px solid var(--border)',
+          borderRadius: 4,
+          background: 'var(--bg-secondary)',
+          cursor: 'nwse-resize',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+        }}
+      />
+    </NodeViewWrapper>
+  );
+}
+
+const ResizableImage = TiptapImage.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: null,
+        parseHTML: element => element.getAttribute('width') || element.style.width.replace('px', '') || null,
+        renderHTML: attributes => attributes.width ? { width: attributes.width } : {},
+      },
+    };
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(ResizableImageView);
+  },
+});
+
+export default function RichTextEditor({ card, mode = 'preview', onSave, onClose }: Props) {
   const { user } = useAuth();
   const [title, setTitle] = useState(card.title);
   const [color, setColor] = useState(card.color);
@@ -38,15 +136,15 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
   const [urlInput, setUrlInput] = useState('');
   const [url, setUrl] = useState(card.url || '');
   const [tagsInput, setTagsInput] = useState((card.tags || []).join(', '));
-  const [isEditing, setIsEditing] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const inlineImageInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       Underline,
-      Image,
+      ResizableImage,
       Highlight.configure({ multicolor: true }),
       Link.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: 'Start typing...' }),
@@ -62,6 +160,32 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
     immediatelyRender: false,
     editorProps: {
       attributes: { class: 'tiptap' },
+      handlePaste: (view, event) => {
+        const file = Array.from(event.clipboardData?.files || []).find(f => f.type.startsWith('image/'));
+        if (!file || !user) return false;
+        event.preventDefault();
+        void uploadFile(file).then(src => {
+          if (!src) return;
+          const { state, dispatch } = view;
+          const node = state.schema.nodes.image?.create({ src });
+          if (node) dispatch(state.tr.replaceSelectionWith(node).scrollIntoView());
+        });
+        return true;
+      },
+      handleDrop: (view, event) => {
+        const file = Array.from(event.dataTransfer?.files || []).find(f => f.type.startsWith('image/'));
+        if (!file || !user) return false;
+        event.preventDefault();
+        void uploadFile(file).then(src => {
+          if (!src) return;
+          const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+          const node = view.state.schema.nodes.image?.create({ src });
+          if (coordinates && node) {
+            view.dispatch(view.state.tr.insert(coordinates.pos, node).scrollIntoView());
+          }
+        });
+        return true;
+      },
     },
   });
 
@@ -129,24 +253,40 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
 
 
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    
+  const uploadFile = useCallback(async (file: File): Promise<string | null> => {
+    if (!file || !user) return null;
     try {
       const arrayBuffer = await file.arrayBuffer();
       const data = Array.from(new Uint8Array(arrayBuffer));
-      
-      const newUrl: string = await invoke('upload_media', {
+
+      return await invoke<string>('upload_media', {
         userId: user.id,
         filename: file.name,
         mimeType: file.type || 'application/octet-stream',
         data
       });
-      
-      setUrl(newUrl);
     } catch (err) {
       console.error('Upload failed', err);
+      return null;
+    }
+  }, [user]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const newUrl = await uploadFile(file);
+    if (newUrl) {
+      setUrl(newUrl);
+    }
+  };
+
+  const handleInlineImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !editor) return;
+    const src = await uploadFile(file);
+    if (src) {
+      editor.chain().focus().setImage({ src }).run();
     }
   };
 
@@ -206,8 +346,7 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
     );
   }
 
-  // ---- Immersive Fullscreen Media Viewer ----
-  if ((card.type === 'image' || card.type === 'pdf') && url) {
+  if (mode === 'preview' && (card.type === 'image' || card.type === 'pdf') && url) {
     return (
       <div className="modal-overlay" style={{ background: 'rgba(0,0,0,0.9)', zIndex: 100000 }} onClick={onClose}>
         <button 
@@ -222,6 +361,71 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
           ) : (
             <img src={url} alt={title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }} />
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'edit' && (card.type === 'image' || card.type === 'pdf')) {
+    return (
+      <div ref={overlayRef} className="modal-overlay" onClick={onClose}>
+        <div
+          className="editor-modal"
+          style={{ width: 'min(560px, calc(100vw - 32px))', maxHeight: 'none', borderRadius: 12 }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="editor-modal-header">
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Card title..."
+            />
+            <div className="editor-top-actions">
+              <button className="editor-top-action-btn" onClick={handleSave}>Save</button>
+              <button className="editor-close-btn" onClick={onClose}><X size={16} /></button>
+            </div>
+          </div>
+
+          <div style={{ padding: 20, display: 'grid', gap: 14 }}>
+            <div className="editor-top-color-picker" style={{ justifyContent: 'flex-start' }}>
+              {CARD_COLORS.map(c => (
+                <button
+                  key={c.value}
+                  type="button"
+                  className={`editor-top-color-dot${color === c.value ? ' active' : ''}`}
+                  style={{ background: c.value }}
+                  onClick={() => setColor(c.value)}
+                  title={c.name}
+                />
+              ))}
+            </div>
+
+            <label style={{ display: 'grid', gap: 6, fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+              {card.type === 'image' ? 'IMAGE URL' : 'PDF URL'}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  className="inline-input"
+                  value={url}
+                  onChange={e => setUrl(e.target.value)}
+                  placeholder="https://... or upload a file"
+                />
+                <label className="editor-save-btn" style={{ cursor: 'pointer', padding: '8px 12px', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-light)' }}>
+                  Upload
+                  <input type="file" style={{ display: 'none' }} accept={card.type === 'image' ? 'image/*' : 'application/pdf'} onChange={handleFileUpload} />
+                </label>
+              </div>
+            </label>
+
+            <label style={{ display: 'grid', gap: 6, fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+              TAGS
+              <input
+                className="inline-input"
+                value={tagsInput}
+                onChange={e => setTagsInput(e.target.value)}
+                placeholder="e.g. urgent, research, draft"
+              />
+            </label>
+          </div>
         </div>
       </div>
     );
@@ -261,7 +465,7 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
           </div>
         </div>
 
-        {isEditing && card.type !== 'richtext' && (
+        {card.type !== 'richtext' && (
           <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
               {card.type === 'image' ? 'IMAGE URL' : card.type === 'pdf' ? 'PDF URL' : card.type === 'link' ? 'LINK URL' : 'SOURCE URL'}
@@ -283,62 +487,67 @@ export default function RichTextEditor({ card, onSave, onClose }: Props) {
           </div>
         )}
 
-        {isEditing && (
-          <div style={{ padding: '0 20px 12px', borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>TAGS (COMMA SEPARATED)</label>
-            <input
-              className="inline-input"
-              value={tagsInput}
-              onChange={e => setTagsInput(e.target.value)}
-              placeholder="e.g. urgent, research, draft"
-            />
-          </div>
-        )}
+        <div style={{ padding: '0 20px 12px', borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
+          <label style={{ display: 'block', marginBottom: '6px', fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>TAGS (COMMA SEPARATED)</label>
+          <input
+            className="inline-input"
+            value={tagsInput}
+            onChange={e => setTagsInput(e.target.value)}
+            placeholder="e.g. urgent, research, draft"
+          />
+        </div>
 
-        {isEditing && (
-          <div className="editor-toolbar">
-            <button className={`editor-toolbar-btn${editor.isActive('bold') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleBold().run()}><Bold size={15} /></button>
-            <button className={`editor-toolbar-btn${editor.isActive('italic') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleItalic().run()}><Italic size={15} /></button>
-            <button className={`editor-toolbar-btn${editor.isActive('underline') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleUnderline().run()}><UnderlineIcon size={15} /></button>
-            <button className={`editor-toolbar-btn${editor.isActive('strike') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleStrike().run()}><Strikethrough size={15} /></button>
-            <button className={`editor-toolbar-btn${editor.isActive('highlight') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleHighlight().run()}><Highlighter size={15} /></button>
-            <div className="editor-toolbar-divider" />
-            <button className={`editor-toolbar-btn${editor.isActive('heading', { level: 1 }) ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}><Heading1 size={15} /></button>
-            <button className={`editor-toolbar-btn${editor.isActive('heading', { level: 2 }) ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}><Heading2 size={15} /></button>
-            <button className={`editor-toolbar-btn${editor.isActive('heading', { level: 3 }) ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}><Heading3 size={15} /></button>
-            <div className="editor-toolbar-divider" />
-            <button className={`editor-toolbar-btn${editor.isActive('bulletList') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleBulletList().run()}><List size={15} /></button>
-            <button className={`editor-toolbar-btn${editor.isActive('orderedList') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleOrderedList().run()}><ListOrdered size={15} /></button>
-            <button className={`editor-toolbar-btn${editor.isActive('blockquote') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleBlockquote().run()}><Quote size={15} /></button>
-            <button className={`editor-toolbar-btn${editor.isActive('codeBlock') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleCodeBlock().run()}><Code size={15} /></button>
-            <div className="editor-toolbar-divider" />
-            <button className={`editor-toolbar-btn${editor.isActive('link') ? ' active' : ''}`} onClick={openLinkPrompt}><LinkIcon size={15} /></button>
-            <button className="editor-toolbar-btn" onClick={openImagePrompt}><ImageIcon size={15} /></button>
-            <button className="editor-toolbar-btn" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} title="Insert table"><TableIcon size={15} /></button>
-            <div className="editor-toolbar-divider" />
-            <button className={`editor-toolbar-btn${editor.isActive({ textAlign: 'left' }) ? ' active' : ''}`} onClick={() => editor.chain().focus().setTextAlign('left').run()}><AlignLeft size={15} /></button>
-            <button className={`editor-toolbar-btn${editor.isActive({ textAlign: 'center' }) ? ' active' : ''}`} onClick={() => editor.chain().focus().setTextAlign('center').run()}><AlignCenter size={15} /></button>
-            <button className={`editor-toolbar-btn${editor.isActive({ textAlign: 'right' }) ? ' active' : ''}`} onClick={() => editor.chain().focus().setTextAlign('right').run()}><AlignRight size={15} /></button>
-            <div className="editor-toolbar-divider" />
-            <button className="editor-toolbar-btn" onClick={() => editor.chain().focus().undo().run()}><Undo size={15} /></button>
-            <button className="editor-toolbar-btn" onClick={() => editor.chain().focus().redo().run()}><Redo size={15} /></button>
-          </div>
-        )}
+        <div className="editor-toolbar">
+          <button className={`editor-toolbar-btn${editor.isActive('bold') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleBold().run()}><Bold size={15} /></button>
+          <button className={`editor-toolbar-btn${editor.isActive('italic') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleItalic().run()}><Italic size={15} /></button>
+          <button className={`editor-toolbar-btn${editor.isActive('underline') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleUnderline().run()}><UnderlineIcon size={15} /></button>
+          <button className={`editor-toolbar-btn${editor.isActive('strike') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleStrike().run()}><Strikethrough size={15} /></button>
+          <button className={`editor-toolbar-btn${editor.isActive('highlight') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleHighlight().run()}><Highlighter size={15} /></button>
+          <div className="editor-toolbar-divider" />
+          <button className={`editor-toolbar-btn${editor.isActive('heading', { level: 1 }) ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}><Heading1 size={15} /></button>
+          <button className={`editor-toolbar-btn${editor.isActive('heading', { level: 2 }) ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}><Heading2 size={15} /></button>
+          <button className={`editor-toolbar-btn${editor.isActive('heading', { level: 3 }) ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}><Heading3 size={15} /></button>
+          <div className="editor-toolbar-divider" />
+          <button className={`editor-toolbar-btn${editor.isActive('bulletList') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleBulletList().run()}><List size={15} /></button>
+          <button className={`editor-toolbar-btn${editor.isActive('orderedList') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleOrderedList().run()}><ListOrdered size={15} /></button>
+          <button className={`editor-toolbar-btn${editor.isActive('blockquote') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleBlockquote().run()}><Quote size={15} /></button>
+          <button className={`editor-toolbar-btn${editor.isActive('codeBlock') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleCodeBlock().run()}><Code size={15} /></button>
+          <div className="editor-toolbar-divider" />
+          <button className={`editor-toolbar-btn${editor.isActive('link') ? ' active' : ''}`} onClick={openLinkPrompt}><LinkIcon size={15} /></button>
+          <button className="editor-toolbar-btn" onClick={openImagePrompt}><ImageIcon size={15} /></button>
+          <button className="editor-toolbar-btn" onClick={() => inlineImageInputRef.current?.click()} title="Upload image"><Upload size={15} /></button>
+          <button className="editor-toolbar-btn" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} title="Insert table"><TableIcon size={15} /></button>
+          <div className="editor-toolbar-divider" />
+          <button className={`editor-toolbar-btn${editor.isActive({ textAlign: 'left' }) ? ' active' : ''}`} onClick={() => editor.chain().focus().setTextAlign('left').run()}><AlignLeft size={15} /></button>
+          <button className={`editor-toolbar-btn${editor.isActive({ textAlign: 'center' }) ? ' active' : ''}`} onClick={() => editor.chain().focus().setTextAlign('center').run()}><AlignCenter size={15} /></button>
+          <button className={`editor-toolbar-btn${editor.isActive({ textAlign: 'right' }) ? ' active' : ''}`} onClick={() => editor.chain().focus().setTextAlign('right').run()}><AlignRight size={15} /></button>
+          <div className="editor-toolbar-divider" />
+          <button className="editor-toolbar-btn" onClick={() => editor.chain().focus().undo().run()}><Undo size={15} /></button>
+          <button className="editor-toolbar-btn" onClick={() => editor.chain().focus().redo().run()}><Redo size={15} /></button>
+        </div>
 
-        {isEditing && showLinkInput && (
+        {showLinkInput && (
           <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '8px' }}>
             <input className="inline-input" placeholder="Enter URL..." value={urlInput} onChange={e => setUrlInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLink()} autoFocus />
             <button className="editor-save-btn" onClick={submitLink} style={{ padding: '4px 12px' }}>Apply</button>
             <button className="editor-close-btn" onClick={() => setShowLinkInput(false)}><X size={14}/></button>
           </div>
         )}
-        {isEditing && showImageInput && (
+        {showImageInput && (
           <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '8px' }}>
             <input className="inline-input" placeholder="Enter image URL..." value={urlInput} onChange={e => setUrlInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitImage()} autoFocus />
             <button className="editor-save-btn" onClick={submitImage} style={{ padding: '4px 12px' }}>Apply</button>
             <button className="editor-close-btn" onClick={() => setShowImageInput(false)}><X size={14}/></button>
           </div>
         )}
+
+        <input
+          ref={inlineImageInputRef}
+          type="file"
+          hidden
+          accept="image/*"
+          onChange={handleInlineImageUpload}
+        />
 
         <div className="editor-content" style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <EditorContent editor={editor} />

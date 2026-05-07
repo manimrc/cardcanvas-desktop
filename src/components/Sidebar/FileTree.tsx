@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Folder, Board } from '@/types';
 import {
   FolderIcon, FolderOpen, FileText, ChevronRight, ChevronDown,
-  Plus, Trash2, Edit3, MoreHorizontal
+  Plus, Trash2, Edit3
 } from 'lucide-react';
 
 interface Props {

@@ -13,7 +13,8 @@ export interface Card {
   y: number;
   width: number;
   height: number;
-  zIndex: number;
+  zIndex?: number;
+  isLocked?: boolean;
   createdAt: string;
   updatedAt: string;
 }

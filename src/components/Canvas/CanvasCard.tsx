@@ -1,7 +1,7 @@
 'use client';
 import { Card as CardType } from '@/types';
 import { CARD_COLORS } from '@/lib/constants';
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { Maximize2, MoreHorizontal } from 'lucide-react';
 
 const TYPE_EMOJI: Record<string, string> = {
@@ -23,6 +23,97 @@ interface Props {
   /** Fill a CSS grid cell (tags mode); ignores canvas x/y/width/height */
   uniformGrid?: boolean;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+}
+
+function PdfThumbnail({ url, title }: { url?: string; title: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(url ? 'loading' : 'error');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!url || !canvasRef.current) {
+      setStatus('error');
+      return;
+    }
+
+    async function renderPdf() {
+      setStatus('loading');
+      try {
+        const pdfjs = await import('pdfjs-dist');
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+          'pdfjs-dist/build/pdf.worker.mjs',
+          import.meta.url
+        ).toString();
+
+        const loadingTask = pdfjs.getDocument(url);
+        const pdf = await loadingTask.promise;
+        if (cancelled) {
+          await pdf.destroy();
+          return;
+        }
+
+        const page = await pdf.getPage(1);
+        const baseViewport = page.getViewport({ scale: 1 });
+        const targetWidth = 220;
+        const viewport = page.getViewport({ scale: targetWidth / baseViewport.width });
+        const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        const canvas = canvasRef.current;
+
+        if (!canvas) {
+          throw new Error('Canvas unavailable');
+        }
+
+        const context = canvas.getContext('2d');
+
+        if (!context) {
+          throw new Error('Canvas context unavailable');
+        }
+
+        canvas.width = Math.floor(viewport.width * pixelRatio);
+        canvas.height = Math.floor(viewport.height * pixelRatio);
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+        context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        context.fillStyle = '#fff';
+        context.fillRect(0, 0, viewport.width, viewport.height);
+
+        await page.render({ canvas, canvasContext: context, viewport }).promise;
+        await pdf.destroy();
+
+        if (!cancelled) setStatus('ready');
+      } catch (err) {
+        console.warn('Failed to render PDF thumbnail:', err);
+        if (!cancelled) setStatus('error');
+      }
+    }
+
+    void renderPdf();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  if (status === 'error') {
+    return (
+      <div className="card-pdf-fallback">
+        <div className="card-pdf-icon">📄</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card-pdf-thumb-frame" aria-label={`${title} preview`}>
+      {status === 'loading' && <div className="card-pdf-thumb-loading">Loading preview...</div>}
+      <canvas
+        ref={canvasRef}
+        className="card-pdf-thumb-canvas"
+        style={{ opacity: status === 'ready' ? 1 : 0 }}
+      />
+    </div>
+  );
 }
 
 export default function CanvasCard({
@@ -175,12 +266,10 @@ export default function CanvasCard({
         );
       case 'pdf':
         return (
-          <div className="card-pdf-container" style={{ padding: 0, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.02)' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-              <div className="card-pdf-icon" style={{ fontSize: 48, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}>📄</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'center', padding: '0 12px' }}>{card.title || 'PDF Document'}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Double-click to view</div>
-            </div>
+          <div className="card-pdf-container">
+            <PdfThumbnail url={card.url} title={card.title || 'PDF Document'} />
+            <div className="card-pdf-title">{card.title || 'PDF Document'}</div>
+            <div className="card-pdf-hint">Double-click to view</div>
           </div>
         );
       case 'article':
@@ -197,7 +286,7 @@ export default function CanvasCard({
         top: 'auto',
         width: '100%',
         height: '100%',
-        zIndex: card.zIndex,
+        zIndex: card.zIndex ?? 1,
         minHeight: 0,
         backgroundColor: card.color,
       }
@@ -208,7 +297,7 @@ export default function CanvasCard({
         height: card.height,
         minWidth: 0,
         minHeight: 0,
-        zIndex: card.zIndex,
+        zIndex: card.zIndex ?? 1,
         backgroundColor: card.color,
       };
 

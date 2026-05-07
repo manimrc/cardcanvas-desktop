@@ -3,7 +3,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, User, Eye, EyeOff, UserPlus, ArrowRight } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import { useAuth } from '@/components/AuthContext';
+import { useAuth, type User as AuthUser } from '@/components/AuthContext';
+
+interface RegisterResponse {
+  user: AuthUser;
+  recoveryCode?: string;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -30,7 +35,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const data = await invoke<any>('register_user', { 
+      const data = await invoke<RegisterResponse>('register_user', { 
         username, 
         password, 
         displayName: displayName || username 
@@ -49,8 +54,8 @@ export default function RegisterPage() {
       }
 
       login(data.user);
-    } catch (err: any) {
-      setError(err || 'Something went wrong. Please try again.');
+    } catch (err: unknown) {
+      setError(typeof err === 'string' ? err : 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };
@@ -58,7 +63,7 @@ export default function RegisterPage() {
   const handleContinue = () => {
     const tempUser = localStorage.getItem('temp_cc_user');
     if (tempUser) {
-      login(JSON.parse(tempUser));
+      login(JSON.parse(tempUser) as AuthUser);
       localStorage.removeItem('temp_cc_user');
     } else {
       router.push('/login');

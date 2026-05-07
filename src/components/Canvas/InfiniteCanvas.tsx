@@ -25,7 +25,7 @@ interface Props {
   onUpdateCard: (card: Partial<Card>) => void;
   onCreateCard: (type: string, x: number, y: number) => void;
   onDeleteCard: (id: string) => void;
-  onEditCard: (card: Card) => void;
+  onEditCard: (card: Card, mode?: 'preview' | 'edit') => void;
   readOnly?: boolean;
   canvasInnerWidth?: number;
   canvasInnerHeight?: number;
@@ -81,8 +81,8 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
 
   useEffect(() => {
     const id = boardId;
+    const el = containerRef.current;
     return () => {
-      const el = containerRef.current;
       if (el && id && onPersistScroll) {
         onPersistScroll(id, el.scrollLeft, el.scrollTop);
       }
@@ -92,10 +92,9 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
   const handleCanvasContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      if (readOnly) return;
-      setContextMenu({ x: e.clientX, y: e.clientY });
+      setContextMenu(null);
     },
-    [readOnly]
+    []
   );
 
   const handleCardContextMenu = useCallback((e: React.MouseEvent, cardId: string) => {
@@ -164,54 +163,16 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
     [onCreateCard, readOnly, screenToCanvas]
   );
 
-  const canvasMenuItems =
-    contextMenu && !contextMenu.cardId && !readOnly
-      ? [
-          {
-            label: 'New Rich Text Card',
-            icon: '📝',
-            onClick: () => {
-              const p = screenToCanvas(contextMenu.x, contextMenu.y);
-              onCreateCard('richtext', p.x, p.y);
-            },
-          },
-          {
-            label: 'New Link Card',
-            icon: '🔗',
-            onClick: () => {
-              const p = screenToCanvas(contextMenu.x, contextMenu.y);
-              onCreateCard('link', p.x, p.y);
-            },
-          },
-          {
-            label: 'New Image Card',
-            icon: '🖼️',
-            onClick: () => {
-              const p = screenToCanvas(contextMenu.x, contextMenu.y);
-              onCreateCard('image', p.x, p.y);
-            },
-          },
-          {
-            label: 'New PDF Card',
-            icon: '📄',
-            onClick: () => {
-              const p = screenToCanvas(contextMenu.x, contextMenu.y);
-              onCreateCard('pdf', p.x, p.y);
-            },
-          },
-          {
-            label: 'New Article Card',
-            icon: '📰',
-            onClick: () => {
-              const p = screenToCanvas(contextMenu.x, contextMenu.y);
-              onCreateCard('article', p.x, p.y);
-            },
-          },
-        ]
-      : [];
-
   const cardMenuItems = contextMenu?.cardId
     ? [
+          {
+            label: 'Edit Card',
+            icon: '✏️',
+            onClick: () => {
+              const c = cards.find(x => x.id === contextMenu.cardId);
+              if (c) onEditCard(c, 'edit');
+            },
+          },
           {
             label: 'Delete Card',
             icon: '🗑️',
@@ -271,7 +232,7 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
               scale={1}
               selected={card.id === selectedCardId}
               onSelect={() => setSelectedCardId(card.id)}
-              onDoubleClick={() => onEditCard(card)}
+              onDoubleClick={() => onEditCard(card, 'preview')}
               onMove={handleMove}
               onDrop={handleDrop}
               onResize={handleResize}
@@ -289,7 +250,7 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
         <ContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
-          items={contextMenu.cardId ? cardMenuItems : canvasMenuItems}
+          items={cardMenuItems}
           onClose={() => setContextMenu(null)}
         />
       )}

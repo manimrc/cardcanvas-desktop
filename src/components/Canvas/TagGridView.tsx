@@ -9,7 +9,7 @@ interface Props {
   cards: Card[];
   boardNameMap: Record<string, string>;
   onDeleteCard: (id: string) => void;
-  onEditCard: (card: Card) => void;
+  onEditCard: (card: Card, mode?: 'preview' | 'edit') => void;
 }
 
 export default function TagGridView({ cards, boardNameMap, onDeleteCard, onEditCard }: Props) {
@@ -23,6 +23,14 @@ export default function TagGridView({ cards, boardNameMap, onDeleteCard, onEditC
 
   const cardMenuItems = contextMenu?.cardId
     ? [
+        {
+          label: 'Edit Card',
+          icon: '✏️',
+          onClick: () => {
+            const c = cards.find(x => x.id === contextMenu.cardId);
+            if (c) onEditCard(c, 'edit');
+          },
+        },
         {
           label: 'Delete Card',
           icon: '🗑️',
@@ -56,7 +64,7 @@ export default function TagGridView({ cards, boardNameMap, onDeleteCard, onEditC
                 scale={1}
                 selected={card.id === selectedCardId}
                 onSelect={() => setSelectedCardId(card.id)}
-                onDoubleClick={() => onEditCard(card)}
+                onDoubleClick={() => onEditCard(card, 'preview')}
                 onMove={noop}
                 onDrop={noop}
                 onResize={noop}

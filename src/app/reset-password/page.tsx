@@ -34,8 +34,8 @@ export default function ResetPasswordPage() {
 
       setSuccess(true);
       setLoading(false);
-    } catch (err: any) {
-      setError(err || 'Something went wrong. Please try again.');
+    } catch (err: unknown) {
+      setError(typeof err === 'string' ? err : 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };

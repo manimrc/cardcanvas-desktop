@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { invoke } from '@tauri-apps/api/core';
 import { useAuth } from '@/components/AuthContext';
 import { Card, Board, Folder } from '@/types';
@@ -25,14 +24,7 @@ function readStorage<T>(key: string, fallback: T): T {
   } catch { return fallback; }
 }
 
-interface UserInfo {
-  id: string;
-  username: string;
-  displayName: string;
-}
-
 export default function Home() {
-  const router = useRouter();
   const { user, logout } = useAuth();
   
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -45,6 +37,7 @@ export default function Home() {
   const [sidebarView, setSidebarView] = useState<SidebarView>(() => readStorage<SidebarView>('cc_sidebarView', 'workspaces'));
   const [selectedTagKeys, setSelectedTagKeys] = useState<string[]>([]);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
+  const [editingCardMode, setEditingCardMode] = useState<'preview' | 'edit'>('preview');
   const [loading, setLoading] = useState(true);
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
   const [isLightMode, setIsLightMode] = useState(() => readStorage('cc_isLightMode', true));
@@ -78,7 +71,7 @@ export default function Home() {
   const fetchAllCards = useCallback(async () => {
     if (!user) return;
     try {
-      const data: any = await invoke('get_all_cards', { userId: user.id });
+      const data = await invoke<Card[]>('get_all_cards', { userId: user.id });
       setAllCards(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch all cards:', err);
@@ -91,7 +84,7 @@ export default function Home() {
   const fetchTree = useCallback(async () => {
     if (!user) return;
     try {
-      const data: any = await invoke('get_tree', { userId: user.id });
+      const data = await invoke<{ folders: Folder[]; boards: Board[] }>('get_tree', { userId: user.id });
       setFolders(data.folders || []);
       setBoards(data.boards || []);
       if (data.boards?.length > 0) {
@@ -111,7 +104,7 @@ export default function Home() {
       return;
     }
     try {
-      const data: any = await invoke('get_cards', { userId: user.id, boardId: activeBoardId });
+      const data = await invoke<Card[]>('get_cards', { userId: user.id, boardId: activeBoardId });
       setCards(Array.isArray(data) ? data : []);
       const board = boards.find(b => b.id === activeBoardId);
       setActiveBoard(board || null);
@@ -210,7 +203,7 @@ export default function Home() {
 
     try {
       const cardData = { id: newId, boardId: activeBoardId, type, x: resolved.x, y: resolved.y, width: w, height: h, isLocked: false, ...d };
-      const card: any = await invoke('create_card', { userId: user.id, card: cardData });
+      const card = await invoke<Card>('create_card', { userId: user.id, card: cardData });
       setCards(prev => [...prev, card]);
       setAllCards(prev => [...prev, card]);
     } catch (err) {
@@ -244,7 +237,7 @@ export default function Home() {
     }
   }, [user, activeBoardId]);
 
-  const createFolder = useCallback(async (parentId: string | null) => {
+  const createFolder = useCallback(async () => {
     if (!user) return;
     try {
       await invoke('create_folder', { userId: user.id, name: 'New Folder' });
@@ -284,7 +277,7 @@ export default function Home() {
     async (folderId: string) => {
       if (!user) return;
       try {
-        const board: any = await invoke('create_board', { userId: user.id, folderId: folderId || null, name: 'Untitled Board' });
+        const board = await invoke<Board>('create_board', { userId: user.id, folderId: folderId || null, name: 'Untitled Board' });
         await fetchTree();
         setActiveBoardId(board.id);
       } catch (err) {
@@ -452,7 +445,10 @@ export default function Home() {
             cards={filteredTagCards}
             boardNameMap={boardNameMap}
             onDeleteCard={deleteCard}
-            onEditCard={card => setEditingCard(card)}
+            onEditCard={(card, mode = 'preview') => {
+              setEditingCard(card);
+              setEditingCardMode(mode);
+            }}
           />
         ) : activeBoardId ? (
           <InfiniteCanvas
@@ -464,7 +460,10 @@ export default function Home() {
             onUpdateCard={updateCard}
             onCreateCard={createCard}
             onDeleteCard={deleteCard}
-            onEditCard={card => setEditingCard(card)}
+            onEditCard={(card, mode = 'preview') => {
+              setEditingCard(card);
+              setEditingCardMode(mode);
+            }}
           />
         ) : (
           <div
@@ -485,7 +484,12 @@ export default function Home() {
       </div>
 
       {editingCard && (
-        <RichTextEditor card={editingCard} onSave={updateCard} onClose={() => setEditingCard(null)} />
+        <RichTextEditor
+          card={editingCard}
+          mode={editingCardMode}
+          onSave={updateCard}
+          onClose={() => setEditingCard(null)}
+        />
       )}
 
 

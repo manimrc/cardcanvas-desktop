@@ -217,9 +217,10 @@ pub fn get_all_cards(app: AppHandle, user_id: String) -> Result<Vec<Card>, Strin
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WhiteboardData {
     pub elements: String,
-    pub appState: String,
+    pub app_state: String,
 }
 
 #[tauri::command]
@@ -230,7 +231,7 @@ pub fn get_whiteboard(app: AppHandle, user_id: String, board_id: String) -> Resu
     let row = stmt.query_row([&board_id], |r| {
         Ok(WhiteboardData {
             elements: r.get(0)?,
-            appState: r.get(1)?,
+            app_state: r.get(1)?,
         })
     });
 
@@ -238,7 +239,7 @@ pub fn get_whiteboard(app: AppHandle, user_id: String, board_id: String) -> Resu
         Ok(data) => Ok(data),
         Err(_) => Ok(WhiteboardData {
             elements: "[]".to_string(),
-            appState: "{}".to_string(),
+            app_state: "{}".to_string(),
         })
     }
 }

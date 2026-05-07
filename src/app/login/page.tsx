@@ -1,13 +1,12 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { invoke } from '@tauri-apps/api/core';
 import { useAuth } from '@/components/AuthContext';
-import { Lock, Mail, Eye, EyeOff, User, ArrowRight } from 'lucide-react';
+import type { User as AuthUser } from '@/components/AuthContext';
+import { Lock, Eye, EyeOff, User, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,11 +22,11 @@ export default function LoginPage() {
 
     try {
       // Use Tauri IPC to call the Rust native 'login_user' command
-      const user = await invoke<any>('login_user', { username, password });
+      const user = await invoke<AuthUser>('login_user', { username, password });
       login(user);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Tauri invoke errors are returned as strings
-      setError(err || 'Something went wrong. Please try again.');
+      setError(typeof err === 'string' ? err : 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };
