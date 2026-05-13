@@ -29,6 +29,28 @@ import {
   BookOpen, Minimize2, Table as TableIcon, Upload
 } from 'lucide-react';
 
+/** Heuristic: does this clipboard text look like markdown? */
+function looksLikeMarkdown(text: string): boolean {
+  return (
+    /^#{1,6}\s/m.test(text) ||           // headings
+    /^\|.+\|/m.test(text) ||             // tables
+    /^```/m.test(text) ||                // code fences
+    /^>\s/m.test(text) ||               // blockquotes
+    /^[-*+]\s/m.test(text) ||           // unordered lists
+    /^\d+\.\s/m.test(text) ||          // ordered lists
+    /\*\*.+\*\*/.test(text) ||          // bold
+    /`.+`/.test(text) ||                 // inline code
+    /^---+$/m.test(text)                 // horizontal rule
+  );
+}
+
+/** Convert markdown text → HTML via marked (loaded lazily) */
+async function markdownToHtml(md: string): Promise<string> {
+  const { marked } = await import('marked');
+  marked.setOptions({ gfm: true, breaks: false });
+  return marked(md) as string;
+}
+
 interface Props {
   card: Card;
   mode?: 'preview' | 'edit';
@@ -161,16 +183,20 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
     editorProps: {
       attributes: { class: 'tiptap' },
       handlePaste: (view, event) => {
+        // Image file paste → upload to local store
         const file = Array.from(event.clipboardData?.files || []).find(f => f.type.startsWith('image/'));
-        if (!file || !user) return false;
-        event.preventDefault();
-        void uploadFile(file).then(src => {
-          if (!src) return;
-          const { state, dispatch } = view;
-          const node = state.schema.nodes.image?.create({ src });
-          if (node) dispatch(state.tr.replaceSelectionWith(node).scrollIntoView());
-        });
-        return true;
+        if (file && user) {
+          event.preventDefault();
+          void uploadFile(file).then(src => {
+            if (!src) return;
+            const { state, dispatch } = view;
+            const node = state.schema.nodes.image?.create({ src });
+            if (node) dispatch(state.tr.replaceSelectionWith(node).scrollIntoView());
+          });
+          return true;
+        }
+        // Markdown text paste is handled by the useEffect DOM listener below
+        return false;
       },
       handleDrop: (view, event) => {
         const file = Array.from(event.dataTransfer?.files || []).find(f => f.type.startsWith('image/'));
@@ -188,6 +214,31 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
       },
     },
   });
+
+  // Markdown paste: attach native DOM listener on the editor element so we
+  // have direct access to both the clipboard text AND the TipTap editor instance.
+  useEffect(() => {
+    if (!editor) return;
+    const editorEl = editor.view.dom;
+    const onPaste = (e: ClipboardEvent) => {
+      // Skip if image file is present (handled by editorProps.handlePaste above)
+      const hasImageFile = Array.from(e.clipboardData?.files || []).some(f => f.type.startsWith('image/'));
+      if (hasImageFile) return;
+
+      const text = e.clipboardData?.getData('text/plain') || '';
+      if (!text || !looksLikeMarkdown(text)) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      void markdownToHtml(text).then(html => {
+        editor.chain().focus().insertContent(html).run();
+      });
+    };
+    // Use capture so it fires before ProseMirror's own paste handler
+    editorEl.addEventListener('paste', onPaste, true);
+    return () => editorEl.removeEventListener('paste', onPaste, true);
+  }, [editor]);
 
   const toggleFocusMode = useCallback(() => {
     if (!focusMode) {

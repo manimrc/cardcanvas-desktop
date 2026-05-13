@@ -624,26 +624,122 @@ body {
   flex: 1;
   padding: 4px 10px 10px;
   overflow: hidden;
-  font-size: 13px;
+  font-size: 12px;
   color: rgba(0,0,0,0.75);
   line-height: 1.5;
+  /* Prevent text from overflowing card bounds */
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
-.card-body h1, .card-body h2, .card-body h3 { color: rgba(0,0,0,0.85); margin-bottom: 4px; }
-.card-body h2 { font-size: 15px; }
-.card-body h3 { font-size: 14px; }
-.card-body p { margin-bottom: 4px; }
-.card-body ul, .card-body ol { padding-left: 16px; margin-bottom: 4px; }
-.card-body img { max-width: 100%; border-radius: 6px; }
-.card-body a { color: var(--accent); }
-.card-body table { width: 100%; border-collapse: collapse; margin: 4px 0; font-size: 12px; }
-.card-body table th, .card-body table td { border: 1px solid rgba(0,0,0,0.15); padding: 3px 6px; text-align: left; }
-.card-body table th { background: rgba(0,0,0,0.06); font-weight: 600; }
-.card-body ul[data-type="taskList"] { list-style: none; padding-left: 4px; }
+
+/* ---- Headings in card preview ---- */
+.card-body h1 { font-size: 14px; font-weight: 700; color: rgba(0,0,0,0.88); margin: 0 0 3px; line-height: 1.3; }
+.card-body h2 { font-size: 13px; font-weight: 700; color: rgba(0,0,0,0.85); margin: 0 0 3px; }
+.card-body h3 { font-size: 12px; font-weight: 600; color: rgba(0,0,0,0.82); margin: 0 0 2px; }
+
+/* ---- Paragraphs & lists ---- */
+.card-body p { margin: 0 0 3px; }
+.card-body ul, .card-body ol { padding-left: 14px; margin: 0 0 3px; }
+.card-body li { margin-bottom: 1px; }
+
+/* ---- Links ---- */
+.card-body a { color: var(--accent); text-decoration: none; }
+
+/* ---- Images ---- */
+.card-body img { max-width: 100%; border-radius: 4px; display: block; margin: 4px 0; }
+
+/* ---- Blockquote ---- */
+.card-body blockquote {
+  border-left: 3px solid rgba(0,0,0,0.2);
+  margin: 4px 0;
+  padding: 2px 8px;
+  color: rgba(0,0,0,0.55);
+  font-style: italic;
+  font-size: 11px;
+}
+
+/* ---- Code & pre ---- */
+.card-body code {
+  background: rgba(0,0,0,0.07);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 10.5px;
+  color: rgba(0,0,0,0.80);
+}
+.card-body pre {
+  background: rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.08);
+  padding: 5px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  overflow-x: auto;
+  margin: 4px 0;
+  white-space: pre;
+}
+.card-body pre code {
+  background: none;
+  padding: 0;
+  font-size: 10px;
+}
+
+/* ---- Tables: scroll horizontally if wider than card ---- */
+.card-body .tableWrapper,
+.card-body table {
+  width: 100%;
+}
+.card-body .tableWrapper {
+  overflow-x: auto;
+  margin: 4px 0;
+  border-radius: 4px;
+}
+.card-body table {
+  border-collapse: collapse;
+  font-size: 10.5px;
+  min-width: 100%;
+  table-layout: auto;
+}
+.card-body table th,
+.card-body table td {
+  border: 1px solid rgba(0,0,0,0.13);
+  padding: 2px 6px;
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: top;
+}
+.card-body table th {
+  background: rgba(0,0,0,0.06);
+  font-weight: 700;
+  font-size: 10px;
+}
+.card-body table tr:nth-child(even) td {
+  background: rgba(0,0,0,0.025);
+}
+
+/* ---- Task list ---- */
+.card-body ul[data-type="taskList"] { list-style: none; padding-left: 0; margin: 2px 0; }
 .card-body ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 4px; }
-.card-body ul[data-type="taskList"] li label input[type="checkbox"] { margin-top: 2px; }
-.card-body hr { border: none; border-top: 1px solid rgba(0,0,0,0.12); margin: 6px 0; }
-.card-body pre { background: rgba(0,0,0,0.05); padding: 6px 8px; border-radius: 4px; font-size: 11px; overflow-x: auto; }
-.card-body code { background: rgba(0,0,0,0.06); padding: 1px 3px; border-radius: 3px; font-size: 11px; }
+.card-body ul[data-type="taskList"] li > label { flex-shrink: 0; margin-top: 1px; }
+.card-body ul[data-type="taskList"] li > label input[type="checkbox"] { width: 11px; height: 11px; accent-color: var(--accent); cursor: default; }
+.card-body ul[data-type="taskList"] li[data-checked="true"] > div { text-decoration: line-through; color: rgba(0,0,0,0.4); }
+
+/* ---- HR ---- */
+.card-body hr { border: none; border-top: 1px solid rgba(0,0,0,0.12); margin: 5px 0; }
+
+/* ---- Highlight ---- */
+.card-body mark { background: #fef08a; padding: 1px 2px; border-radius: 2px; }
+
+/* ---- Bold / italic ---- */
+.card-body strong { font-weight: 700; color: rgba(0,0,0,0.85); }
+.card-body em { font-style: italic; }
+
+/* Fade-in flash when markdown is auto-converted on paste */
+@keyframes mdPasteFade {
+  0% { background: rgba(99,102,241,0.12); }
+  100% { background: transparent; }
+}
+.card-body.md-pasted { animation: mdPasteFade 0.8s ease; }
+
 
 .card-link-preview {
   padding: 10px;
@@ -1030,7 +1126,53 @@ body {
   max-width: 100%;
   border-radius: var(--radius-sm);
   margin: 1em 0;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
 }
+.focus-mode-content .tiptap code {
+  background: rgba(99,102,241,0.12);
+  color: var(--accent);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 14px;
+}
+.focus-mode-content .tiptap pre {
+  background: #1a1b26;
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 18px 20px;
+  border-radius: var(--radius-sm);
+  margin: 1.2em 0;
+  overflow-x: auto;
+  position: relative;
+}
+.focus-mode-content .tiptap pre::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 3px;
+  background: linear-gradient(90deg, var(--accent), #a78bfa);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.focus-mode-content .tiptap pre code {
+  background: none;
+  color: #e2e8f0;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.focus-mode-content .tiptap blockquote {
+  border-left: 4px solid var(--accent);
+  padding: 10px 18px;
+  background: rgba(99,102,241,0.06);
+  border-radius: 0 8px 8px 0;
+  margin: 1.2em 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+.focus-mode-content .tiptap mark { background: #fef08a; padding: 1px 3px; border-radius: 2px; }
+.focus-mode-content .tiptap strong { font-weight: 700; }
+.focus-mode-content .tiptap .tableWrapper { overflow-x: auto; margin: 1em 0; }
+
 
 /* Focus button in editor header */
 .focus-mode-btn {
@@ -1096,37 +1238,72 @@ body {
 }
 .editor-content .tiptap {
   outline: none; min-height: 300px;
-  font-size: 15px; line-height: 1.7;
+  font-size: 15px; line-height: 1.75;
   color: var(--text-primary);
 }
-.editor-content .tiptap h1 { font-size: 28px; margin-bottom: 8px; }
-.editor-content .tiptap h2 { font-size: 22px; margin-bottom: 6px; }
-.editor-content .tiptap h3 { font-size: 18px; margin-bottom: 4px; }
-.editor-content .tiptap p { margin-bottom: 8px; }
-.editor-content .tiptap ul, .editor-content .tiptap ol { padding-left: 24px; margin-bottom: 8px; }
+.editor-content .tiptap h1 { font-size: 26px; font-weight: 700; margin: 0.2em 0 0.4em; letter-spacing: -0.02em; }
+.editor-content .tiptap h2 { font-size: 20px; font-weight: 700; margin: 0.8em 0 0.4em; }
+.editor-content .tiptap h3 { font-size: 17px; font-weight: 600; margin: 0.7em 0 0.3em; }
+.editor-content .tiptap p { margin-bottom: 10px; }
+.editor-content .tiptap ul, .editor-content .tiptap ol { padding-left: 24px; margin-bottom: 10px; }
+.editor-content .tiptap li { margin-bottom: 3px; }
 .editor-content .tiptap a { color: var(--accent); text-decoration: underline; }
 .editor-content .tiptap blockquote {
-  border-left: 3px solid var(--accent);
-  padding-left: 16px; color: var(--text-secondary);
-  margin: 8px 0;
+  border-left: 4px solid var(--accent);
+  padding: 8px 16px;
+  color: var(--text-secondary);
+  background: rgba(99,102,241,0.05);
+  border-radius: 0 6px 6px 0;
+  margin: 12px 0;
+  font-style: italic;
 }
 .editor-content .tiptap code {
-  background: var(--bg-tertiary); padding: 2px 6px;
-  border-radius: 4px; font-size: 13px;
+  background: rgba(99,102,241,0.12);
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 13px;
 }
 .editor-content .tiptap pre {
-  background: var(--bg-primary); padding: 16px;
-  border-radius: var(--radius-sm); margin: 8px 0;
+  background: #1a1b26;
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 16px 18px;
+  border-radius: var(--radius-sm);
+  margin: 12px 0;
   overflow-x: auto;
+  position: relative;
+}
+.editor-content .tiptap pre::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 3px;
+  background: linear-gradient(90deg, var(--accent), #a78bfa);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.editor-content .tiptap pre code {
+  background: none;
+  color: #e2e8f0;
+  padding: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.7;
 }
 .editor-content .tiptap img {
-  max-width: 100%; border-radius: 8px; margin: 8px 0;
+  max-width: 100%; border-radius: 8px; margin: 10px 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
+.editor-content .tiptap strong { font-weight: 700; }
+.editor-content .tiptap mark { background: #fef08a; padding: 1px 3px; border-radius: 3px; }
 .editor-content .tiptap p.is-editor-empty:first-child::before {
   color: var(--text-muted);
   content: attr(data-placeholder);
   float: left; height: 0; pointer-events: none;
 }
+
+
+
 
 /* ---- Table styles in editor ---- */
 .editor-content .tiptap table {
