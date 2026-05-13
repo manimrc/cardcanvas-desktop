@@ -658,19 +658,19 @@ body {
   font-size: 11px;
 }
 
-/* ---- Code & pre ---- */
+/* ---- Code & pre: card preview (Notion-style) ---- */
 .card-body code {
-  background: rgba(0,0,0,0.07);
+  background: rgba(124,92,252,0.08);
+  color: var(--text-primary);
   padding: 1px 4px;
   border-radius: 3px;
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-  font-size: 10.5px;
-  color: rgba(0,0,0,0.80);
+  font-size: 10px;
+  border: 1px solid var(--border);
 }
 .card-body pre {
-  background: rgba(0,0,0,0.06);
-  border: 1px solid rgba(0,0,0,0.08);
-  padding: 5px 7px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-light);
   border-radius: 4px;
   font-size: 10px;
   overflow-x: auto;
@@ -678,9 +678,25 @@ body {
   white-space: pre;
 }
 .card-body pre code {
+  display: block;
   background: none;
-  padding: 0;
+  border: none;
+  padding: 6px 8px;
   font-size: 10px;
+  color: var(--text-primary);
+}
+/* Light mode override: card preview code */
+.light .card-body code {
+  background: #f0f0f2;
+  color: #374151;
+  border-color: #d1d1d6;
+}
+.light .card-body pre {
+  background: #f7f7f8;
+  border-color: #e4e4e7;
+}
+.light .card-body pre code {
+  color: #1f2937;
 }
 
 /* ---- Tables: scroll horizontally if wider than card ---- */
@@ -1128,37 +1144,62 @@ body {
   margin: 1em 0;
   box-shadow: 0 4px 20px rgba(0,0,0,0.15);
 }
+/* ---- Code blocks: focus mode (Notion-style, light) ---- */
 .focus-mode-content .tiptap code {
-  background: rgba(99,102,241,0.12);
-  color: var(--accent);
-  padding: 2px 7px;
+  background: rgba(124,92,252,0.08);
+  color: var(--text-primary);
+  padding: 2px 6px;
   border-radius: 4px;
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-  font-size: 14px;
+  font-size: 0.88em;
+  border: 1px solid var(--border);
 }
 .focus-mode-content .tiptap pre {
-  background: #1a1b26;
-  border: 1px solid rgba(255,255,255,0.08);
-  padding: 18px 20px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
   margin: 1.2em 0;
   overflow-x: auto;
   position: relative;
 }
-.focus-mode-content .tiptap pre::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 3px;
-  background: linear-gradient(90deg, var(--accent), #a78bfa);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+/* Language label from data-language attribute */
+.focus-mode-content .tiptap pre[data-language]::before {
+  content: attr(data-language);
+  display: block;
+  padding: 8px 16px 6px;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.04em;
 }
 .focus-mode-content .tiptap pre code {
+  display: block;
   background: none;
-  color: #e2e8f0;
-  padding: 0;
-  font-size: 14px;
-  line-height: 1.7;
+  color: var(--text-primary);
+  padding: 14px 16px;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 13.5px;
+  line-height: 1.75;
+  border: none;
+}
+/* Light mode override: focus mode code */
+.light .focus-mode-content .tiptap code {
+  background: #f0f0f2;
+  color: #374151;
+  border-color: #d1d1d6;
+}
+.light .focus-mode-content .tiptap pre {
+  background: #f7f7f8;
+  border-color: #e4e4e7;
+}
+.light .focus-mode-content .tiptap pre[data-language]::before {
+  color: #9ca3af;
+  border-color: #e4e4e7;
+}
+.light .focus-mode-content .tiptap pre code {
+  color: #1f2937;
 }
 .focus-mode-content .tiptap blockquote {
   border-left: 4px solid var(--accent);
@@ -1257,38 +1298,63 @@ body {
   margin: 12px 0;
   font-style: italic;
 }
+/* ---- Code blocks: editor modal (Notion-style, light) ---- */
 .editor-content .tiptap code {
-  background: rgba(99,102,241,0.12);
-  color: var(--accent);
+  background: rgba(124,92,252,0.08);
+  color: var(--text-primary);
   padding: 2px 6px;
   border-radius: 4px;
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-  font-size: 13px;
+  font-size: 0.87em;
+  border: 1px solid var(--border);
 }
 .editor-content .tiptap pre {
-  background: #1a1b26;
-  border: 1px solid rgba(255,255,255,0.08);
-  padding: 16px 18px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
   margin: 12px 0;
   overflow-x: auto;
   position: relative;
 }
-.editor-content .tiptap pre::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 3px;
-  background: linear-gradient(90deg, var(--accent), #a78bfa);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+/* Language label */
+.editor-content .tiptap pre[data-language]::before {
+  content: attr(data-language);
+  display: block;
+  padding: 7px 14px 5px;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
 }
 .editor-content .tiptap pre code {
+  display: block;
   background: none;
-  color: #e2e8f0;
-  padding: 0;
+  color: var(--text-primary);
+  padding: 12px 14px;
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
   font-size: 13px;
   line-height: 1.7;
+  border: none;
+}
+/* Light mode override: editor modal code */
+.light .editor-content .tiptap code {
+  background: #f0f0f2;
+  color: #374151;
+  border-color: #d1d1d6;
+}
+.light .editor-content .tiptap pre {
+  background: #f7f7f8;
+  border-color: #e4e4e7;
+}
+.light .editor-content .tiptap pre[data-language]::before {
+  color: #9ca3af;
+  border-color: #e4e4e7;
+}
+.light .editor-content .tiptap pre code {
+  color: #1f2937;
 }
 .editor-content .tiptap img {
   max-width: 100%; border-radius: 8px; margin: 10px 0;
@@ -2104,3 +2170,152 @@ body {
   color: var(--danger);
   border-color: rgba(239, 68, 68, 0.3);
 }
+
+/* ==========================================================================
+   SYNTAX HIGHLIGHTING — lowlight / highlight.js token classes
+   Two themes: dark (default) and light (.light class override)
+   Palette: GitHub-inspired, muted and readable — not neon IDE colors
+   ========================================================================== */
+
+/* ---- DARK THEME (default) ---- */
+
+/* Base: inherits text color from container */
+.hljs { color: var(--text-primary); }
+
+/* Keywords: if, for, return, function, const, let, CREATE, SELECT, etc. */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-meta .hljs-keyword,
+.hljs-doctag { color: #bb9af7; } /* soft lavender */
+
+/* Strings: "hello", 'world', `template` */
+.hljs-string,
+.hljs-regexp,
+.hljs-addition { color: #9ece6a; } /* sage green */
+
+/* Comments: // ... , /* ... , # ... */
+.hljs-comment,
+.hljs-quote { color: #5c6370; font-style: italic; } /* muted warm gray */
+
+/* Numbers: 42, 3.14, 0xff */
+.hljs-number,
+.hljs-literal { color: #fc9a61; } /* warm peach */
+
+/* Function & method names */
+.hljs-title,
+.hljs-title.function_,
+.hljs-title.class_,
+.hljs-section { color: #7aa2f7; } /* sky blue */
+
+/* Types, builtins, built-in types */
+.hljs-type,
+.hljs-built_in,
+.hljs-class .hljs-title { color: #73daca; } /* mint cyan */
+
+/* Attributes (JSON keys, HTML attrs, YAML keys) */
+.hljs-attr,
+.hljs-attribute { color: #73daca; } /* mint cyan */
+
+/* Variables & template variables */
+.hljs-variable,
+.hljs-template-variable { color: #e0af68; } /* warm amber */
+
+/* HTML/XML tags */
+.hljs-tag { color: #f7768e; } /* soft rose */
+.hljs-name { color: #7dcfff; } /* light blue */
+
+/* Operators & punctuation */
+.hljs-operator,
+.hljs-punctuation { color: #89ddff; opacity: 0.8; } /* pale cyan */
+
+/* CSS selectors & properties */
+.hljs-selector-class,
+.hljs-selector-id,
+.hljs-selector-pseudo { color: #bb9af7; }
+.hljs-property { color: #73daca; }
+
+/* Emphasis / strong */
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 700; }
+
+/* Deletions (diffs) */
+.hljs-deletion { color: #f7768e; }
+
+/* Meta, preprocessor */
+.hljs-meta { color: #7aa2f7; }
+.hljs-meta .hljs-string { color: #9ece6a; }
+
+/* Symbols, links */
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link { color: #fc9a61; }
+
+/* ---- LIGHT THEME overrides (.light class on <html>) ---- */
+
+/* Base */
+.light .hljs { color: #1f2937; }
+
+/* Keywords */
+.light .hljs-keyword,
+.light .hljs-selector-tag,
+.light .hljs-meta .hljs-keyword,
+.light .hljs-doctag { color: #7c3aed; } /* violet-700 — matches screenshot */
+
+/* Strings */
+.light .hljs-string,
+.light .hljs-regexp,
+.light .hljs-addition { color: #166534; } /* green-800 */
+
+/* Comments */
+.light .hljs-comment,
+.light .hljs-quote { color: #6b7280; font-style: italic; } /* gray-500 */
+
+/* Numbers */
+.light .hljs-number,
+.light .hljs-literal { color: #c2410c; } /* orange-700 */
+
+/* Function & method names */
+.light .hljs-title,
+.light .hljs-title.function_,
+.light .hljs-title.class_,
+.light .hljs-section { color: #1d4ed8; } /* blue-700 */
+
+/* Types, builtins */
+.light .hljs-type,
+.light .hljs-built_in,
+.light .hljs-class .hljs-title { color: #0e7490; } /* cyan-700 — matches screenshot */
+
+/* Attributes / YAML/JSON keys */
+.light .hljs-attr,
+.light .hljs-attribute { color: #0369a1; } /* sky-700 */
+
+/* Variables */
+.light .hljs-variable,
+.light .hljs-template-variable { color: #b45309; } /* amber-700 */
+
+/* HTML tags */
+.light .hljs-tag { color: #9f1239; } /* rose-800 */
+.light .hljs-name { color: #0c4a6e; } /* sky-900 */
+
+/* Operators */
+.light .hljs-operator,
+.light .hljs-punctuation { color: #374151; opacity: 0.7; }
+
+/* CSS */
+.light .hljs-selector-class,
+.light .hljs-selector-id,
+.light .hljs-selector-pseudo { color: #7c3aed; }
+.light .hljs-property { color: #0e7490; }
+
+/* Deletions */
+.light .hljs-deletion { color: #9f1239; }
+
+/* Meta */
+.light .hljs-meta { color: #1d4ed8; }
+.light .hljs-meta .hljs-string { color: #166534; }
+
+/* Symbols / bullets / links */
+.light .hljs-symbol,
+.light .hljs-bullet,
+.light .hljs-link { color: #c2410c; }
+

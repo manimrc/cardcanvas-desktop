@@ -7,6 +7,8 @@ import {
   type NodeViewProps,
 } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { createLowlight, common } from 'lowlight';
 import TiptapImage from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -16,6 +18,10 @@ import Highlight from '@tiptap/extension-highlight';
 import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
+
+// Singleton lowlight instance with all common languages (JS, TS, Python, SQL,
+// YAML, JSON, Bash, Rust, Go, CSS, HTML, Markdown, and ~25 more)
+const lowlight = createLowlight(common);
 import { Card } from '@/types';
 import { CARD_COLORS } from '@/lib/constants';
 import { invoke } from '@tauri-apps/api/core';
@@ -164,7 +170,9 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      // Disable StarterKit's plain CodeBlock — CodeBlockLowlight takes over
+      StarterKit.configure({ codeBlock: false }),
+      CodeBlockLowlight.configure({ lowlight }),
       Underline,
       ResizableImage,
       Highlight.configure({ multicolor: true }),
