@@ -17,7 +17,7 @@ Imagine an infinite digital whiteboard where you can place sticky notes, but on 
 - 🔍 **Search & Tags:** Find exactly what you need, instantly.
 - 📁 **Folders & Boards:** Keep your workspaces neatly organized.
 - 🖌️ **Whiteboard Mode:** Draw and sketch freely (powered by Excalidraw).
-- 📦 **Runs Anywhere:** Use it on the Web, via Docker, or as a native app on macOS and Windows.
+- 📦 **Runs Anywhere:** Use it as a native app on macOS, Linux, and Windows.
 
 ---
 
@@ -29,13 +29,11 @@ Before we dive into setup, let's understand *how* CardCanvas works under the hoo
 Built with **Next.js 16** and **React 19**. It uses **Vanilla CSS** for its beautiful dark theme and glassmorphism effects. For the rich text editor, it leverages **TipTap**, and for the drawing canvas, it uses **Excalidraw**.
 
 ### 2. The Backend & Database (Where Data Lives)
-CardCanvas doesn't require a massive database setup. It uses **SQLite** (via `better-sqlite3`). This means your entire database is just a single file on your computer! Next.js "API Routes" handle the communication between the UI and this database file.
+CardCanvas doesn't require a massive cloud database setup. It uses **SQLite** natively. Your entire database is just a single file on your computer! 
 
-### 3. Desktop Apps (Electron)
-To make CardCanvas run like a normal app on your computer, we use **Electron**. Electron wraps the Next.js web application in a native desktop window. 
-
-> [!TIP]
-> **Fun Fact:** Electron actually runs a hidden background process (Node.js) to manage your SQLite database locally, while showing you the visual app in a Chromium window!
+### 3. Desktop Apps (Tauri)
+To make CardCanvas run like a normal app on your computer, we use **Tauri**. Tauri packages the Next.js web application into a lightning-fast native desktop window, written in Rust.
+Tauri communicates with the Next.js frontend using Rust commands, acting as the secure bridge between the user interface and the local SQLite database.
 
 ---
 
@@ -44,7 +42,7 @@ To make CardCanvas run like a normal app on your computer, we use **Electron**. 
 Want to tinker with the code? Here's the easiest way to get started.
 
 > [!IMPORTANT]
-> You'll need **Node.js (version 20 is perfect)** installed on your computer.
+> You'll need **Node.js (version 20)** and **Rust** installed on your computer.
 
 ### Step 1: Download and Install Dependencies
 Open your terminal and run:
@@ -53,45 +51,14 @@ git clone https://github.com/YOUR_USERNAME/cardcanvas.git
 cd cardcanvas
 npm install --legacy-peer-deps
 ```
-> [!NOTE]
-> *Why `--legacy-peer-deps`?* Some of our rich text editor packages have slight version mismatches. This flag just tells npm, "It's okay, they still work together nicely!"
 
 ### Step 2: Start the Dev Server
 ```bash
-npm run dev
+npm run tauri dev
 ```
 
 ### Step 3: Open the App
-Go to **http://localhost:3000** in your browser. Any code changes you make will instantly show up! 
-
-> [!TIP]
-> **Where is my data?** If you create cards, they are saved locally on your computer in a file located at `./data/cardboard.db`. Your data is private!
-
----
-
-## 🐳 Deploying with Docker (For Servers)
-
-If you want to host CardCanvas on a server so you can access it from anywhere, **Docker** is your best friend. 
-
-Docker packages the app and everything it needs to run into a single "container".
-
-### The Magic Command
-If you have Docker installed, just run:
-```bash
-docker compose up -d
-```
-Boom! The app is running on **http://localhost:3000**.
-
-### How does the Docker build work?
-We use a **multi-stage build** to keep the app lightweight:
-
-```mermaid
-graph LR
-    A["📦 Stage 1<br/>Install ALL packages"] --> B["🏗️ Stage 2<br/>Build the App"]
-    A --> C["🧹 Stage 3<br/>Keep ONLY Production packages"]
-    B --> D["🚀 Stage 4<br/>Final Tiny Container"]
-    C --> D
-```
+The Tauri window will open automatically. Any code changes you make to the React frontend or Rust backend will instantly show up! 
 
 ---
 
@@ -99,18 +66,12 @@ graph LR
 
 Want an actual `.dmg` or `.exe` file to install CardCanvas like a native app?
 
-### For macOS
 It's just one command:
 ```bash
-npm run electron:build
+npm run tauri build
 ```
-This does all the hard work: building Next.js, copying the database modules, and packaging it up. The final file will be waiting for you in the `dist/` folder!
-
-### For Windows
-If you are on a Windows machine, the process is very similar! Just run the same commands, and `electron-builder` will create a `.exe` installer for you.
-
-> [!WARNING]
-> **Cross-compiling:** Don't try to build the Windows `.exe` file from a Mac! While the visual app will compile, the SQLite database needs to be built natively on Windows to function correctly. 
+This does all the hard work: building Next.js into static HTML, compiling the Rust backend, and packaging it up into a tiny installer file. 
+The final file will be waiting for you in the `src-tauri/target/release/bundle/` folder!
 
 ---
 
@@ -118,9 +79,9 @@ If you are on a Windows machine, the process is very similar! Just run the same 
 
 Here are quick fixes to common hiccups:
 
-- **"Port 3000 is in use"**: Another app is running on port 3000. Stop it, or run CardCanvas on a different port: `PORT=3001 npm run dev`
-- **Blank window in the Desktop App**: Make sure you start the Next.js development server (`npm run dev`) *before* you open the Electron app!
-- **Data not saving on Windows**: If you built your `.exe` on a Mac, the database driver is incompatible. Build it on a Windows computer instead!
+- **"command not found"**: Ensure you have installed both Node.js and Rust and restarted your terminal.
+- **Port 3000 is in use**: Another app is running on port 3000, preventing the Next.js frontend from starting. Stop the other app.
+- **Missing OS Dependencies**: On Linux, Tauri requires webkit2gtk and other libraries to be installed (`sudo apt-get install libwebkit2gtk-4.1-dev`).
 
 ---
 

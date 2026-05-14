@@ -47,7 +47,7 @@ The generated installer/app bundle will be placed under:
 src-tauri/target/release/bundle/
 ```
 
-For complete install, Docker/web, development, backup, and transfer instructions, see [DEPLOYMENT_AND_INSTALLATION.md](./DEPLOYMENT_AND_INSTALLATION.md).
+For complete install, development, backup, and transfer instructions, see [DEPLOYMENT_AND_INSTALLATION.md](./DEPLOYMENT_AND_INSTALLATION.md).
 
 ## Development
 

@@ -7,27 +7,23 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  publish-tauri:
+    permissions:
+      contents: write
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: macos-14
-            platform: mac
-            arch: arm64
-          - os: macos-13
-            platform: mac
-            arch: x64
-          - os: windows-latest
-            platform: win
-            arch: x64
-          - os: ubuntu-latest
-            platform: linux
-            arch: x64
+          - platform: 'macos-latest'
+            args: '--target universal-apple-darwin'
+          - platform: 'ubuntu-22.04'
+            args: ''
+          - platform: 'windows-latest'
+            args: ''
 
-    runs-on: ${{ matrix.os }}
-
+    runs-on: ${{ matrix.platform }}
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -36,70 +32,28 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Build Next.js (standalone)
-        run: npx next build
-
-      - name: Copy static assets into standalone
-        shell: bash
-        run: |
-          cp -R .next/static .next/standalone/.next/static
-          cp -R public .next/standalone/public
-
-      - name: Copy native modules into standalone
-        shell: bash
-        run: |
-          cp -R node_modules/better-sqlite3 .next/standalone/node_modules/better-sqlite3
-          cp -R node_modules/bindings .next/standalone/node_modules/bindings 2>/dev/null || true
-          cp -R node_modules/file-uri-to-path .next/standalone/node_modules/file-uri-to-path 2>/dev/null || true
-
-      - name: Resolve symlinks in standalone
-        shell: bash
-        run: |
-          # Next.js standalone creates symlinks that electron-builder can't follow
-          find .next/standalone -type l | while read link; do
-            target=$(readlink "$link")
-            resolved=$(cd "$(dirname "$link")" && realpath "$target" 2>/dev/null || echo "")
-            if [ -n "$resolved" ] && [ -e "$resolved" ]; then
-              rm "$link"
-              cp -R "$resolved" "$link"
-              echo "Resolved: $link"
-            fi
-          done
-
-      - name: Build Electron app
-        run: npx electron-builder --${{ matrix.platform }} --config electron-builder.yml
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
         with:
-          name: CardCanvas-${{ matrix.platform }}-${{ matrix.arch }}
-          path: |
-            dist/*.dmg
-            dist/*.exe
-            dist/*.AppImage
-            dist/*.deb
-          retention-days: 30
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+      - name: Install dependencies (Ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
+      - name: Install frontend dependencies
+        run: npm ci
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/**/*
-          generate_release_notes: true
+      - name: Build and Release Tauri app
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'CardCanvas v__VERSION__'
+          releaseBody: 'See the assets to download this version and install.'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}

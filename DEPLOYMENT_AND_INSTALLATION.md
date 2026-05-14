@@ -1,21 +1,20 @@
 # CardCanvas: Complete Deployment & Installation Guide
 
-Welcome to the **CardCanvas** installation guide. CardCanvas is designed to be highly flexible, allowing you to run it as a standalone, offline desktop application or host it on your own server for web access. 
+Welcome to the **CardCanvas** installation guide. CardCanvas is designed to be highly flexible, allowing you to run it as a standalone, offline desktop application.
 
 This document is written for users of all technical backgrounds. You do not need to be a programmer to install and use CardCanvas.
 
 Choose the setup that best fits your needs:
 1. **[Native Desktop Application](#option-1-native-desktop-application)** (Recommended for everyday use on Mac, Windows, or Linux)
-2. **[Self-Hosted Web Application](#option-2-self-hosted-web-version-via-docker)** (Recommended for servers, NAS, and accessing via Android/iOS devices)
-3. **[Development Mode](#option-3-development-mode)** (For developers modifying the code)
+2. **[Development Mode](#option-2-development-mode)** (For developers modifying the code)
 
 ---
 
 ## Option 1: Native Desktop Application
 
-The absolute best way to experience CardCanvas is by installing it directly on your computer. Once installed, it behaves exactly like any other software (like Google Chrome or Microsoft Word)—you just double-click the icon to open it. **You do not need to use the terminal to run the app after it is installed.**
+The absolute best way to experience CardCanvas is by installing it directly on your computer. Once installed, it behaves exactly like any other software.
 
-To get the installer file (`.dmg` for Mac or `.exe` for Windows), you need to "build" the application once.
+To get the installer file (`.dmg` for Mac or `.exe` for Windows), you can either download the latest release from GitHub or build it yourself.
 
 ### Step 1: Install Prerequisites
 Your computer needs two free tools to compile the application from its source code:
@@ -38,41 +37,9 @@ Once the build process finishes, your application is ready!
 - **Apple macOS Users:** Open the folder `src-tauri/target/release/bundle/macos/`. You will find a `CardCanvas.app` and a `CardCanvas.dmg`. Double-click the `.dmg` and drag CardCanvas into your Applications folder.
 - **Windows Users:** Open the folder `src-tauri/target/release/bundle/msi/`. You will find a `.msi` or `.exe` installer. Double-click it to install CardCanvas to your system.
 
-*You can now close the terminal. Open CardCanvas from your Applications or Start Menu anytime!*
-
 ---
 
-## Option 2: Self-Hosted Web Version via Docker
-
-If you want to use CardCanvas on your **Android phone, iPhone, tablet**, or access it from multiple computers, the best method is to use Docker. Docker packages the application into a secure "container" that runs a local website on your network.
-
-### Step 1: Install Docker
-You will need Docker Desktop installed on the computer that will act as the "host" or server.
-- **Docker Desktop:** [Download & Install Here](https://www.docker.com/products/docker-desktop/)
-
-### Step 2: Start the Container
-1. Open your **Terminal** or **Command Prompt** and navigate to the `cardcanvas` folder.
-2. Build the Docker container by running:
-   ```bash
-   docker build -t cardcanvas-web .
-   ```
-3. Once the build is complete, start the application by running:
-   ```bash
-   docker run -p 3000:3000 -v cardcanvas_data:/app/data -d cardcanvas-web
-   ```
-   
-   **What does this command do?**
-   - `-p 3000:3000`: Opens a doorway (port 3000) so you can access the app.
-   - `-v cardcanvas_data:/app/data`: Creates a permanent storage vault. If your computer restarts, your boards and images will remain safe.
-   - `-d`: Runs the app silently in the background.
-
-### Step 3: Access from Any Device
-- **On the Host Computer:** Open your web browser and go to `http://localhost:3000`
-- **On your Phone / Tablet (Android or iOS):** Ensure your mobile device is connected to the same Wi-Fi network as the host computer. Open your mobile web browser and type the host computer's local IP address followed by `:3000` (for example: `http://192.168.1.15:3000`).
-
----
-
-## Option 3: Development Mode
+## Option 2: Development Mode
 
 If you are a programmer looking to modify the code, you will want to run the application in "Development Mode." This mode enables "hot-reloading," meaning anytime you save a file, the application instantly updates on your screen.
 
@@ -81,7 +48,7 @@ If you are a programmer looking to modify the code, you will want to run the app
 npm run tauri dev
 ```
 
-**To code the Web App version (No desktop features):**
+**To code the Frontend App version (No native features):**
 ```bash
 npm run dev
 ```
@@ -91,10 +58,10 @@ npm run dev
 ## Frequently Asked Questions (FAQ)
 
 **Is my data private?**
-Yes. CardCanvas does not connect to the cloud. If you use the Native Desktop Application, your data (whiteboards, text, and media) is saved directly to a local SQLite database on your hard drive. If you use Docker, your data is saved strictly inside your local Docker volume. 
+Yes. CardCanvas does not connect to the cloud. Your data (whiteboards, text, and media) is saved directly to a local SQLite database on your hard drive.
 
 **Can I download CardCanvas directly from the Google Play Store or Apple App Store?**
-Not currently. While the underlying technology (Tauri) supports mobile applications, CardCanvas is currently optimized for desktop-sized screens. To use it perfectly on your mobile device today, we highly recommend following the **Option 2 (Docker)** instructions to access it via your mobile web browser.
+Not currently. CardCanvas is currently optimized for desktop-sized screens.
 
 **I get an error saying "command not found" when trying to build.**
 This usually means Node.js or Rust did not install correctly. Try restarting your computer or terminal after installing the prerequisites to ensure your system recognizes the new tools.
@@ -123,6 +90,3 @@ If you are moving to a new computer or just want to safely back up your boards, 
 
 **Linux:**
 Navigate to `~/.local/share/com.cardcanvas.app`
-
-**Docker (Web Version):**
-If you are using Docker, your data is stored inside the `cardcanvas_data` volume you created in the run command. You can locate it on your host system using Docker Desktop or by running `docker volume inspect cardcanvas_data`.
