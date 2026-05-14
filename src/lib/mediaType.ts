@@ -10,7 +10,7 @@ export function inferMediaType(url: string, mimeHint?: string): MediaKind {
   if (/\.pdf$/i.test(path)) return 'pdf';
   const t = url.trim();
   if (/^https?:\/\//i.test(t)) return 'link';
-  if (t.startsWith('/') && t.includes('/api/upload')) {
+  if (t.startsWith('media://') || t.startsWith('asset://')) {
     if (mimeHint?.includes('pdf')) return 'pdf';
     if (mimeHint?.startsWith('image/')) return 'image';
     return 'image';
