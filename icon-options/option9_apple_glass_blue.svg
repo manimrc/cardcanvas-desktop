@@ -1,0 +1,111 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Master Squircle Clip -->
+    <clipPath id="squircle">
+      <rect width="1024" height="1024" rx="224" />
+    </clipPath>
+
+    <!-- Border Gradients -->
+    <linearGradient id="left-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#4c1d95" />
+    </linearGradient>
+
+    <linearGradient id="right-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d946ef" />
+      <stop offset="100%" stop-color="#7e22ce" />
+    </linearGradient>
+
+    <!-- Deep Shadow for the Border creating the recessed white hole -->
+    <filter id="border-shadow" x="-20%" y="-20%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#4c1d95" flood-opacity="0.3"/>
+    </filter>
+
+    <!-- Glass Card Shadow -->
+    <filter id="card-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="24" stdDeviation="32" flood-color="#000000" flood-opacity="0.15"/>
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.1"/>
+    </filter>
+
+    <!-- Glass Gloss Highlight -->
+    <linearGradient id="gloss" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.8" />
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.3" />
+    </linearGradient>
+  </defs>
+
+  <g clip-path="url(#squircle)">
+    
+    <!-- 1. The Clean White Canvas Hole Background -->
+    <rect width="1024" height="1024" fill="#f8fafc" />
+
+    <!-- 2. The Glassmorphic Pastel Cards -->
+    <!-- Left Card (Pink Glass) -->
+    <g transform="rotate(-6 360 500)" filter="url(#card-shadow)">
+      <!-- Base Color -->
+      <rect x="200" y="270" width="340" height="460" rx="32" fill="#fbcfe8" fill-opacity="0.9" />
+      <!-- Glass Gloss -->
+      <rect x="200" y="270" width="340" height="460" rx="32" fill="url(#gloss)" />
+      <!-- Glass Rim -->
+      <rect x="200" y="270" width="340" height="460" rx="32" fill="none" stroke="#ffffff" stroke-width="4" stroke-opacity="0.9" />
+      
+      <!-- UI Lines (Frosted/White) -->
+      <rect x="240" y="340" width="200" height="28" rx="14" fill="#ffffff" fill-opacity="0.9"/>
+      <rect x="240" y="410" width="240" height="24" rx="12" fill="#ffffff" fill-opacity="0.8"/>
+      <rect x="240" y="460" width="220" height="24" rx="12" fill="#ffffff" fill-opacity="0.7"/>
+      <rect x="240" y="510" width="230" height="24" rx="12" fill="#ffffff" fill-opacity="0.6"/>
+      <rect x="240" y="560" width="180" height="24" rx="12" fill="#ffffff" fill-opacity="0.5"/>
+      <rect x="240" y="610" width="210" height="24" rx="12" fill="#ffffff" fill-opacity="0.4"/>
+    </g>
+
+    <!-- Right Card (Sky Blue Glass) -->
+    <g transform="rotate(8 650 520)" filter="url(#card-shadow)">
+      <!-- Base Color -->
+      <rect x="470" y="320" width="360" height="400" rx="32" fill="#bae6fd" fill-opacity="0.9" />
+      <!-- Glass Gloss -->
+      <rect x="470" y="320" width="360" height="400" rx="32" fill="url(#gloss)" />
+      <!-- Glass Rim -->
+      <rect x="470" y="320" width="360" height="400" rx="32" fill="none" stroke="#ffffff" stroke-width="4" stroke-opacity="0.9" />
+      
+      <!-- UI Image Box -->
+      <rect x="510" y="370" width="280" height="200" rx="24" fill="#ffffff" fill-opacity="0.5" />
+      <circle cx="650" cy="470" r="56" fill="#ffffff" fill-opacity="0.9" />
+      <rect x="510" y="610" width="200" height="28" rx="14" fill="#ffffff" fill-opacity="0.7" />
+      <rect x="510" y="660" width="160" height="24" rx="12" fill="#ffffff" fill-opacity="0.5" />
+    </g>
+
+    <!-- 3. The Thick Dual CC Borders -->
+    <g filter="url(#border-shadow)">
+      <!-- Left CC Border -->
+      <path d="M 512 0 
+               L 224 0 
+               C 100 0, 0 100, 0 224 
+               L 0 800 
+               C 0 924, 100 1024, 224 1024 
+               L 512 1024 
+               L 512 854 
+               L 310 854 
+               C 233 854, 170 791, 170 714 
+               L 170 310 
+               C 170 233, 233 170, 310 170 
+               L 512 170 Z" 
+            fill="url(#left-grad)" />
+            
+      <!-- Right CC Border -->
+      <path d="M 512 0 
+               L 800 0 
+               C 924 0, 1024 100, 1024 224 
+               L 1024 800 
+               C 1024 924, 924 1024, 800 1024 
+               L 512 1024 
+               L 512 854 
+               L 714 854 
+               C 791 854, 854 791, 854 714 
+               L 854 310 
+               C 854 233, 791 170, 714 170 
+               L 512 170 Z" 
+            fill="url(#right-grad)" />
+    </g>
+  </g>
+</svg>

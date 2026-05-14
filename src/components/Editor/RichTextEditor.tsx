@@ -164,6 +164,7 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
   const [urlInput, setUrlInput] = useState('');
   const [url, setUrl] = useState(card.url || '');
   const [tagsInput, setTagsInput] = useState((card.tags || []).join(', '));
+  const [contentUpdated, setContentUpdated] = useState(0);
   const [focusMode, setFocusMode] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const inlineImageInputRef = useRef<HTMLInputElement>(null);
@@ -188,6 +189,9 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
     ],
     content: card.content || '',
     immediatelyRender: false,
+    onUpdate: () => {
+      setContentUpdated(Date.now());
+    },
     editorProps: {
       attributes: { class: 'tiptap' },
       handlePaste: (view, event) => {
@@ -276,21 +280,43 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, [focusMode, editor]);
 
-  const handleSave = useCallback(() => {
+  const autoSave = useCallback(() => {
     const parsedTags = tagsInput
       .split(',')
       .map(t => t.trim())
       .filter(Boolean);
-    onSave({
-      id: card.id,
-      title,
-      content: editor?.getHTML() || '',
-      color,
-      url,
-      tags: parsedTags,
-    });
+    const newContent = editor?.getHTML() || '';
+    
+    const hasChanges = 
+      title !== card.title ||
+      color !== card.color ||
+      url !== (card.url || '') ||
+      tagsInput !== (card.tags || []).join(', ') ||
+      newContent !== (card.content || '');
+
+    if (hasChanges) {
+      onSave({
+        id: card.id,
+        title,
+        content: newContent,
+        color,
+        url,
+        tags: parsedTags,
+      });
+    }
+  }, [card, title, color, url, tagsInput, editor, onSave]);
+
+  const handleClose = useCallback(() => {
+    autoSave();
     onClose();
-  }, [card.id, title, color, url, tagsInput, editor, onSave, onClose]);
+  }, [autoSave, onClose]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      autoSave();
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [title, color, url, tagsInput, contentUpdated, autoSave]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -299,16 +325,16 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
           // Fullscreen exit is handled by fullscreenchange listener
           return;
         }
-        onClose();
+        handleClose();
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
-        handleSave();
+        autoSave();
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [handleSave, onClose, focusMode]);
+  }, [autoSave, handleClose, focusMode]);
 
 
 
@@ -407,9 +433,9 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
 
   if (mode === 'preview' && (card.type === 'image' || card.type === 'pdf') && url) {
     return (
-      <div className="modal-overlay" style={{ background: 'rgba(0,0,0,0.9)', zIndex: 100000 }} onClick={onClose}>
+      <div className="modal-overlay" style={{ background: 'rgba(0,0,0,0.9)', zIndex: 100000 }} onClick={handleClose}>
         <button 
-          onClick={onClose}
+          onClick={handleClose}
           style={{ position: 'absolute', top: 20, right: 24, background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 100001 }}
         >
           <X size={24} />
@@ -427,7 +453,7 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
 
   if (mode === 'edit' && (card.type === 'image' || card.type === 'pdf')) {
     return (
-      <div ref={overlayRef} className="modal-overlay" onClick={onClose}>
+      <div ref={overlayRef} className="modal-overlay" onClick={handleClose}>
         <div
           className="editor-modal"
           style={{ width: 'min(560px, calc(100vw - 32px))', maxHeight: 'none', borderRadius: 12 }}
@@ -440,8 +466,7 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
               placeholder="Card title..."
             />
             <div className="editor-top-actions">
-              <button className="editor-top-action-btn" onClick={handleSave}>Save</button>
-              <button className="editor-close-btn" onClick={onClose}><X size={16} /></button>
+              <button className="editor-close-btn" onClick={handleClose}><X size={16} /></button>
             </div>
           </div>
 
@@ -491,7 +516,7 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
   }
 
   return (
-    <div ref={overlayRef} className="modal-overlay" onClick={onClose}>
+    <div ref={overlayRef} className="modal-overlay" onClick={handleClose}>
       <div className="editor-modal" onClick={e => e.stopPropagation()}>
         <div className="editor-modal-header">
           <input
@@ -512,7 +537,6 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
                 />
               ))}
             </div>
-            <button className="editor-top-action-btn" onClick={handleSave}>Save Changes</button>
             <button
               className="editor-top-action-btn focus-mode-btn"
               onClick={toggleFocusMode}
@@ -520,7 +544,7 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
             >
               <BookOpen size={14} /> Focus
             </button>
-            <button className="editor-close-btn" onClick={onClose}><X size={16} /></button>
+            <button className="editor-close-btn" onClick={handleClose}><X size={16} /></button>
           </div>
         </div>
 
