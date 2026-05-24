@@ -17,6 +17,7 @@ use super::models::UploadResponse;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/upload", post(upload_media))
+        .layer(axum::extract::DefaultBodyLimit::disable())
         .route("/files/:user_id/:filename", get(serve_media))
 }
 
