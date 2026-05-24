@@ -937,6 +937,7 @@ body {
 }
 .context-menu-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 .context-menu-item.danger:hover { background: rgba(239,68,68,0.15); color: var(--danger); }
+.context-menu-item.disabled, .context-menu-item.disabled:hover { opacity: 0.4; cursor: not-allowed; background: transparent; color: var(--text-muted); }
 .context-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
 
 /* ===== CONFIRM DIALOG ===== */

@@ -34,6 +34,11 @@ interface Props {
   onPersistScroll?: (boardId: string, left: number, top: number) => void;
   selectedCardId?: string | null;
   onSelectCard?: (id: string | null) => void;
+  onCopyCard?: (card: Card) => void;
+  onCutCard?: (card: Card) => void;
+  onPasteCard?: (x: number, y: number) => void;
+  onAddMediaClick?: (x: number, y: number) => void;
+  hasClipboardItem?: boolean;
 }
 
 const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function InfiniteCanvas(
@@ -52,6 +57,11 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
     onPersistScroll,
     selectedCardId,
     onSelectCard,
+    onCopyCard,
+    onCutCard,
+    onPasteCard,
+    onAddMediaClick,
+    hasClipboardItem = false,
   },
   ref
 ) {
@@ -99,7 +109,16 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
   const handleCanvasContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      setContextMenu(null);
+      const target = e.target as HTMLElement;
+      if (
+        target === containerRef.current ||
+        target.classList.contains('canvas-inner') ||
+        target.classList.contains('canvas-grid')
+      ) {
+        setContextMenu({ x: e.clientX, y: e.clientY });
+      } else {
+        setContextMenu(null);
+      }
     },
     []
   );
@@ -189,14 +208,31 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
     [onCreateCard, readOnly, screenToCanvas]
   );
 
-  const cardMenuItems = contextMenu?.cardId
-    ? [
+  const cardMenuItems = contextMenu
+    ? contextMenu.cardId
+      ? [
           {
             label: 'Edit Card',
             icon: '✏️',
             onClick: () => {
               const c = cards.find(x => x.id === contextMenu.cardId);
               if (c) onEditCard(c, 'edit');
+            },
+          },
+          {
+            label: 'Copy Card',
+            icon: '📋',
+            onClick: () => {
+              const c = cards.find(x => x.id === contextMenu.cardId);
+              if (c && onCopyCard) onCopyCard(c);
+            },
+          },
+          {
+            label: 'Cut Card',
+            icon: '✂️',
+            onClick: () => {
+              const c = cards.find(x => x.id === contextMenu.cardId);
+              if (c && onCutCard) onCutCard(c);
             },
           },
           {
@@ -207,6 +243,37 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
               if (contextMenu.cardId) {
                 const c = cards.find(x => x.id === contextMenu.cardId);
                 setDeleteConfirm({ cardId: contextMenu.cardId, title: c?.title || 'Untitled' });
+              }
+            },
+          },
+        ]
+      : [
+          {
+            label: 'Paste Card',
+            icon: '📋',
+            disabled: !hasClipboardItem,
+            onClick: () => {
+              if (onPasteCard) {
+                const pos = screenToCanvas(contextMenu.x, contextMenu.y);
+                onPasteCard(pos.x, pos.y);
+              }
+            },
+          },
+          {
+            label: 'Create Note',
+            icon: '📝',
+            onClick: () => {
+              const pos = screenToCanvas(contextMenu.x, contextMenu.y);
+              onCreateCard('richtext', pos.x, pos.y);
+            },
+          },
+          {
+            label: 'Add Media',
+            icon: '🖼️',
+            onClick: () => {
+              if (onAddMediaClick) {
+                const pos = screenToCanvas(contextMenu.x, contextMenu.y);
+                onAddMediaClick(pos.x, pos.y);
               }
             },
           },

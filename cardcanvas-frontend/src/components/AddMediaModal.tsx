@@ -125,6 +125,16 @@ export default function AddMediaModal({ open, onClose, onConfirm }: Props) {
               <span className="add-media-preview-pdf-icon">📄</span>
               <span>PDF ready to add</span>
             </div>
+          ) : preview && kind === 'audio' ? (
+            <div className="add-media-preview-pdf">
+              <span className="add-media-preview-pdf-icon">🎵</span>
+              <span>Audio ready to add</span>
+            </div>
+          ) : preview && kind === 'video' ? (
+            <div className="add-media-preview-pdf">
+              <span className="add-media-preview-pdf-icon">🎥</span>
+              <span>Video ready to add</span>
+            </div>
           ) : url.trim() && kind === 'link' ? (
             <div className="add-media-preview-link">
               <Link2 size={22} />
@@ -135,7 +145,7 @@ export default function AddMediaModal({ open, onClose, onConfirm }: Props) {
           ) : (
             <div className="add-media-preview-empty">
               <Clipboard size={20} />
-              <span>Paste image, PDF, or a link — or upload a file</span>
+              <span>Paste image, PDF, audio, video, or a link — or upload a file</span>
             </div>
           )}
         </div>
@@ -160,7 +170,7 @@ export default function AddMediaModal({ open, onClose, onConfirm }: Props) {
         <button type="button" className="editor-save-btn add-media-upload-btn" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
           <Upload size={16} /> Upload file from computer
         </button>
-        <input ref={fileInputRef} type="file" hidden accept="image/*,application/pdf,.pdf" onChange={e => void handleFile(e.target.files?.[0])} />
+        <input ref={fileInputRef} type="file" hidden accept="image/*,application/pdf,.pdf,audio/*,video/*" onChange={e => void handleFile(e.target.files?.[0])} />
 
         <div className="add-media-actions">
           <button type="button" className="editor-save-btn add-media-cancel" onClick={onClose}>Cancel</button>

@@ -7,6 +7,7 @@ interface MenuItem {
   onClick: () => void;
   danger?: boolean;
   divider?: boolean;
+  disabled?: boolean;
 }
 
 interface Props {
@@ -35,8 +36,9 @@ export default function ContextMenu({ x, y, items, onClose }: Props) {
         ) : (
           <button
             key={i}
-            className={`context-menu-item${item.danger ? ' danger' : ''}`}
-            onClick={() => { item.onClick(); onClose(); }}
+            className={`context-menu-item${item.danger ? ' danger' : ''}${item.disabled ? ' disabled' : ''}`}
+            onClick={() => { if (!item.disabled) { item.onClick(); onClose(); } }}
+            disabled={item.disabled}
           >
             {item.icon && <span>{item.icon}</span>}
             {item.label}

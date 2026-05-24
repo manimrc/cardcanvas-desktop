@@ -56,6 +56,7 @@ export default function Home() {
   const [journalDate, setJournalDate] = useState(() => new Date());
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [cardClipboard, setCardClipboard] = useState<{ card: Card; action: 'copy' | 'cut' } | null>(null);
+  const [mediaSpawnPos, setMediaSpawnPos] = useState<{ x: number; y: number } | null>(null);
 
   const handleLogout = useCallback(() => { logout(); }, [logout]);
 
@@ -345,6 +346,63 @@ export default function Home() {
     return () => window.removeEventListener('paste', handlePaste);
   }, [handlePaste]);
 
+  const pasteCardAtPosition = useCallback(
+    async (x: number, y: number) => {
+      if (!cardClipboard || !activeBoardId) return;
+      const { card, action } = cardClipboard;
+
+      if (action === 'copy') {
+        const newW = card.width ?? 280;
+        const newH = card.height ?? 200;
+        const resolved = findNonOverlappingPosition('__new__', x, y, newW, newH, cards);
+        try {
+          const newCard = await api.cards.create({
+            id: generateUUID(),
+            board_id: activeBoardId,
+            type: card.type,
+            x: resolved.x,
+            y: resolved.y,
+            width: newW,
+            height: newH,
+            is_locked: false,
+            title: `${card.title} (Copy)`,
+            content: card.content,
+            color: card.color,
+            url: card.url,
+            tags: card.tags,
+          } as any);
+          setCards(prev => [...prev, newCard]);
+          setAllCards(prev => [...prev, newCard]);
+          setSelectedCardId(newCard.id);
+        } catch (err) {
+          console.error('Failed to paste-copy card:', err);
+        }
+      } else if (action === 'cut') {
+        try {
+          await api.cards.update(card.id, {
+            board_id: activeBoardId,
+            x,
+            y,
+          } as any);
+
+          if (card.boardId === activeBoardId) {
+            setCards(prev => prev.map(c => (c.id === card.id ? { ...c, x, y } : c)));
+            setAllCards(prev => prev.map(c => (c.id === card.id ? { ...c, x, y } : c)));
+          } else {
+            setCards(prev => prev.filter(c => c.id !== card.id));
+            setAllCards(prev => prev.map(c => (c.id === card.id ? { ...c, boardId: activeBoardId, x, y } : c)));
+          }
+
+          setCardClipboard(null);
+          setSelectedCardId(card.id);
+        } catch (err) {
+          console.error('Failed to paste-cut card:', err);
+        }
+      }
+    },
+    [cardClipboard, activeBoardId, cards]
+  );
+
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
@@ -394,63 +452,14 @@ export default function Home() {
             y = pos.y;
           }
 
-          const { card, action } = cardClipboard;
-          
-          if (action === 'copy') {
-            const newW = card.width ?? 280;
-            const newH = card.height ?? 200;
-            const resolved = findNonOverlappingPosition('__new__', x, y, newW, newH, cards);
-            try {
-              const newCard = await api.cards.create({
-                id: generateUUID(),
-                board_id: activeBoardId,
-                type: card.type,
-                x: resolved.x,
-                y: resolved.y,
-                width: newW,
-                height: newH,
-                is_locked: false,
-                title: `${card.title} (Copy)`,
-                content: card.content,
-                color: card.color,
-                url: card.url,
-                tags: card.tags,
-              } as any);
-              setCards(prev => [...prev, newCard]);
-              setAllCards(prev => [...prev, newCard]);
-              setSelectedCardId(newCard.id);
-            } catch (err) {
-              console.error('Failed to paste-copy card:', err);
-            }
-          } else if (action === 'cut') {
-            try {
-              await api.cards.update(card.id, {
-                board_id: activeBoardId,
-                x,
-                y,
-              } as any);
-              
-              if (card.boardId === activeBoardId) {
-                setCards(prev => prev.map(c => c.id === card.id ? { ...c, x, y } : c));
-                setAllCards(prev => prev.map(c => c.id === card.id ? { ...c, x, y } : c));
-              } else {
-                setCards(prev => prev.filter(c => c.id !== card.id));
-                setAllCards(prev => prev.map(c => c.id === card.id ? { ...c, boardId: activeBoardId, x, y } : c));
-              }
-
-              setCardClipboard(null);
-              setSelectedCardId(card.id);
-            } catch (err) {
-              console.error('Failed to paste-cut card:', err);
-            }
-          }
+          await pasteCardAtPosition(x, y);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedCardId, cards, cardClipboard, activeBoardId, screenToCanvas, getViewportSpot]);
+  }, [selectedCardId, cards, cardClipboard, activeBoardId, screenToCanvas, getViewportSpot, pasteCardAtPosition]);
 
   const createFolder = useCallback(async () => {
     if (!user) return;
@@ -639,6 +648,14 @@ export default function Home() {
             onEditCard={(card, mode = 'preview') => { setEditingCard(card); setEditingCardMode(mode); }}
             selectedCardId={selectedCardId}
             onSelectCard={setSelectedCardId}
+            onCopyCard={card => setCardClipboard({ card, action: 'copy' })}
+            onCutCard={card => setCardClipboard({ card, action: 'cut' })}
+            onPasteCard={pasteCardAtPosition}
+            onAddMediaClick={(x, y) => {
+              setMediaSpawnPos({ x, y });
+              setMediaModalOpen(true);
+            }}
+            hasClipboardItem={!!cardClipboard}
           />
         ) : (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexDirection: 'column', gap: 12 }}>
@@ -659,10 +676,11 @@ export default function Home() {
 
       <AddMediaModal
         open={mediaModalOpen}
-        onClose={() => setMediaModalOpen(false)}
+        onClose={() => { setMediaModalOpen(false); setMediaSpawnPos(null); }}
         onConfirm={(u, mime) => {
-          const pos = getViewportSpot();
+          const pos = mediaSpawnPos || getViewportSpot();
           createCard(inferMediaType(u, mime), pos.x, pos.y, u);
+          setMediaSpawnPos(null);
         }}
       />
     </div>
