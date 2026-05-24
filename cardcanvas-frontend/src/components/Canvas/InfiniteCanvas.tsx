@@ -32,6 +32,8 @@ interface Props {
   boardNameMap?: Record<string, string>;
   getRestoredScroll?: (boardId: string) => { left: number; top: number } | undefined;
   onPersistScroll?: (boardId: string, left: number, top: number) => void;
+  selectedCardId?: string | null;
+  onSelectCard?: (id: string | null) => void;
 }
 
 const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function InfiniteCanvas(
@@ -48,11 +50,16 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
     boardNameMap,
     getRestoredScroll,
     onPersistScroll,
+    selectedCardId,
+    onSelectCard,
   },
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [localSelectedCardId, setLocalSelectedCardId] = useState<string | null>(null);
+  const currentSelectedCardId = selectedCardId !== undefined ? selectedCardId : localSelectedCardId;
+  const setCurrentSelectedCardId = onSelectCard || setLocalSelectedCardId;
+
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; cardId?: string } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ cardId: string; title: string } | null>(null);
 
@@ -221,7 +228,7 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
             target.classList.contains('canvas-inner') ||
             target.classList.contains('canvas-grid')
           ) {
-            setSelectedCardId(null);
+            setCurrentSelectedCardId(null);
           }
         }}
       >
@@ -249,14 +256,15 @@ const InfiniteCanvas = forwardRef<InfiniteCanvasHandle, Props>(function Infinite
               key={card.id}
               card={card}
               scale={1}
-              selected={card.id === selectedCardId}
-              onSelect={() => setSelectedCardId(card.id)}
+              selected={card.id === currentSelectedCardId}
+              onSelect={() => setCurrentSelectedCardId(card.id)}
               onDoubleClick={() => onEditCard(card, 'preview')}
               onMove={handleMove}
               onDrop={handleDrop}
               onResize={handleResize}
               onContextMenu={e => handleCardContextMenu(e, card.id)}
               onColorChange={handleColorChange}
+              onUpdateCard={onUpdateCard}
               readOnly={readOnly}
               boardLabel={boardNameMap?.[card.boardId]}
               scrollContainerRef={containerRef}

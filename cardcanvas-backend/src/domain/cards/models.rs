@@ -63,6 +63,7 @@ pub struct CreateCardRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct UpdateCardRequest {
+    pub board_id: Option<Uuid>,
     pub title: Option<String>,
     #[validate(custom(function = "validate_url_opt"))]
     pub url: Option<String>,

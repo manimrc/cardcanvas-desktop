@@ -55,8 +55,7 @@ impl MediaService {
         })
     }
 
-    pub async fn read_file(&self, user_id: Uuid, filename: &str) -> Result<(Vec<u8>, String)> {
-        // Path traversal protection: filename must not contain directory traversal characters
+    pub fn get_file_path(&self, user_id: Uuid, filename: &str) -> Result<(PathBuf, String)> {
         if filename.contains("..") || filename.contains('/') || filename.contains('\\') {
             return Err(AppError::BadRequest("Invalid filename".into()));
         }
@@ -68,11 +67,6 @@ impl MediaService {
             return Err(AppError::NotFound);
         }
 
-        let data = tokio::fs::read(&file_path)
-            .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!(e)))?;
-
-        // Determine content type from filename extension
         let ext = std::path::Path::new(filename)
             .extension()
             .and_then(|e| e.to_str())
@@ -86,8 +80,24 @@ impl MediaService {
             "webp" => "image/webp",
             "svg" => "image/svg+xml",
             "pdf" => "application/pdf",
+            "mp3" => "audio/mpeg",
+            "wav" => "audio/wav",
+            "ogg" => "audio/ogg",
+            "m4a" => "audio/mp4",
+            "mp4" => "video/mp4",
+            "webm" => "video/webm",
             _ => "application/octet-stream",
         }.to_string();
+
+        Ok((file_path, mime_type))
+    }
+
+    pub async fn read_file(&self, user_id: Uuid, filename: &str) -> Result<(Vec<u8>, String)> {
+        let (file_path, mime_type) = self.get_file_path(user_id, filename)?;
+
+        let data = tokio::fs::read(&file_path)
+            .await
+            .map_err(|e| AppError::Internal(anyhow::anyhow!(e)))?;
 
         Ok((data, mime_type))
     }

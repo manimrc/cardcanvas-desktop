@@ -3,9 +3,11 @@ import { Card as CardType } from '@/types';
 import { CARD_COLORS } from '@/lib/constants';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { Maximize2, MoreHorizontal } from 'lucide-react';
+import AudioPlayer from './AudioPlayer';
+import VideoPlayer from './VideoPlayer';
 
 const TYPE_EMOJI: Record<string, string> = {
-  richtext: '📝', link: '🔗', image: '🖼️', pdf: '📄', article: '📰',
+  richtext: '📝', link: '🔗', image: '🖼️', pdf: '📄', article: '📰', audio: '🎵', video: '🎥',
 };
 interface Props {
   card: CardType;
@@ -18,6 +20,7 @@ interface Props {
   onResize: (id: string, w: number, h: number) => void;
   onContextMenu: (e: React.MouseEvent) => void;
   onColorChange: (id: string, color: string) => void;
+  onUpdateCard?: (update: Partial<CardType>) => void;
   readOnly?: boolean;
   boardLabel?: string;
   /** Fill a CSS grid cell (tags mode); ignores canvas x/y/width/height */
@@ -141,6 +144,7 @@ export default function CanvasCard({
   onResize,
   onContextMenu,
   onColorChange,
+  onUpdateCard,
   readOnly = false,
   boardLabel,
   uniformGrid = false,
@@ -290,6 +294,22 @@ export default function CanvasCard({
             <div className="card-pdf-title">{card.title || 'PDF Document'}</div>
             <div className="card-pdf-hint">Double-click to view</div>
           </div>
+        );
+      case 'audio':
+        return <AudioPlayer url={card.url || ''} title={card.title || 'Audio Note'} />;
+      case 'video':
+        return (
+          <VideoPlayer
+            url={card.url || ''}
+            thumbnailUrl={card.content || ''}
+            cardId={card.id}
+            title={card.title || 'Video Note'}
+            onUpdateThumbnail={(thumbUrl) => {
+              if (onUpdateCard) {
+                onUpdateCard({ id: card.id, content: thumbUrl });
+              }
+            }}
+          />
         );
       case 'article':
         return <div className="card-body" dangerouslySetInnerHTML={{ __html: card.content }} />;

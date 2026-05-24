@@ -54,6 +54,8 @@ export default function Home() {
   const [isLightMode, setIsLightMode] = useState(() => readStorage('cc_isLightMode', true));
   const [searchQuery, setSearchQuery] = useState('');
   const [journalDate, setJournalDate] = useState(() => new Date());
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [cardClipboard, setCardClipboard] = useState<{ card: Card; action: 'copy' | 'cut' } | null>(null);
 
   const handleLogout = useCallback(() => { logout(); }, [logout]);
 
@@ -130,6 +132,8 @@ export default function Home() {
     if (typeof window !== 'undefined' && window.innerWidth <= 768) setSidebarCollapsed(true);
   }, []);
 
+
+
   const globalTagEntries = useMemo(() => collectGlobalTagEntries(allCards), [allCards]);
   const boardNameMap = useMemo(() => Object.fromEntries(boards.map(b => [b.id, b.name])), [boards]);
   const getWorkspaceScroll = useCallback((id: string) => workspaceScrollRef.current[id], []);
@@ -166,6 +170,8 @@ export default function Home() {
       image:    { title: 'New Image', content: '<p>Add an image URL</p>', color: '#C8E6C9' },
       pdf:      { title: 'PDF Document', content: '', color: '#FFE0B2' },
       article:  { title: 'Clipped Article', content: '<p>Paste article content...</p>', color: '#E1BEE7' },
+      audio:    { title: 'Audio Card', content: '', color: '#ECEFF1', width: 320, height: 100 },
+      video:    { title: 'Video Card', content: '', color: '#ECEFF1', width: 400, height: 280 },
     };
     const d = defaults[type] || defaults.richtext;
     if (url) d.url = url;
@@ -185,7 +191,7 @@ export default function Home() {
         height: h,
         is_locked: false,
         ...d,
-      });
+      } as any);
       setCards(prev => [...prev, card]);
       setAllCards(prev => [...prev, card]);
     } catch (err) {
@@ -216,6 +222,235 @@ export default function Home() {
       console.error('Failed to delete card:', err);
     }
   }, [user]);
+
+  const mouseRef = useRef({ x: 0, y: 0, isOnCanvas: false });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current.x = e.clientX;
+      mouseRef.current.y = e.clientY;
+      const container = workspaceCanvasRef.current?.getScrollContainer();
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        mouseRef.current.isOnCanvas = (
+          e.clientX >= rect.left &&
+          e.clientX <= rect.right &&
+          e.clientY >= rect.top &&
+          e.clientY <= rect.bottom
+        );
+      } else {
+        mouseRef.current.isOnCanvas = false;
+      }
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  const screenToCanvas = useCallback((screenX: number, screenY: number) => {
+    const container = workspaceCanvasRef.current?.getScrollContainer();
+    if (!container) return { x: 0, y: 0 };
+    const rect = container.getBoundingClientRect();
+    return {
+      x: screenX - rect.left + container.scrollLeft,
+      y: screenY - rect.top + container.scrollTop,
+    };
+  }, []);
+
+  const handlePaste = useCallback(
+    async (e: ClipboardEvent) => {
+      const activeEl = document.activeElement;
+      if (activeEl) {
+        const tagName = activeEl.tagName.toLowerCase();
+        if (
+          tagName === 'input' ||
+          tagName === 'textarea' ||
+          activeEl.hasAttribute('contenteditable') ||
+          (activeEl as HTMLElement).isContentEditable
+        ) {
+          return;
+        }
+      }
+
+      if (!user || !activeBoardId) return;
+
+      let x = 0;
+      let y = 0;
+      if (mouseRef.current.isOnCanvas) {
+        const canvasPos = screenToCanvas(mouseRef.current.x, mouseRef.current.y);
+        x = canvasPos.x;
+        y = canvasPos.y;
+      } else {
+        const pos = getViewportSpot();
+        x = pos.x;
+        y = pos.y;
+      }
+
+      const files = e.clipboardData?.files;
+      if (files && files.length > 0) {
+        e.preventDefault();
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          try {
+            const result = await api.media.upload(file);
+            const inferredType = inferMediaType(result.url, result.mimeType);
+            
+            const cardX = x + i * 24;
+            const cardY = y + i * 24;
+            
+            await createCard(inferredType, cardX, cardY, result.url);
+          } catch (err) {
+            console.error('Failed to upload pasted file:', err);
+          }
+        }
+        return;
+      }
+
+      const text = e.clipboardData?.getData('text/plain')?.trim();
+      if (text) {
+        e.preventDefault();
+        const isUrl = /^https?:\/\//i.test(text);
+        if (isUrl) {
+          await createCard('link', x, y, text);
+        } else {
+          const w = 280;
+          const h = 200;
+          const resolved = findNonOverlappingPosition('__new__', x, y, w, h, cards);
+          try {
+            const card = await api.cards.create({
+              id: generateUUID(),
+              board_id: activeBoardId,
+              type: 'richtext',
+              x: resolved.x,
+              y: resolved.y,
+              width: w,
+              height: h,
+              is_locked: false,
+              title: 'Pasted Note',
+              content: `<p>${text.replace(/\n/g, '<br />')}</p>`,
+              color: '#FFF9C4',
+            });
+            setCards(prev => [...prev, card]);
+            setAllCards(prev => [...prev, card]);
+          } catch (err) {
+            console.error('Failed to create pasted card:', err);
+          }
+        }
+      }
+    },
+    [user, activeBoardId, cards, getViewportSpot, createCard, screenToCanvas]
+  );
+
+  useEffect(() => {
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [handlePaste]);
+
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (activeEl) {
+        const tagName = activeEl.tagName.toLowerCase();
+        if (
+          tagName === 'input' ||
+          tagName === 'textarea' ||
+          activeEl.hasAttribute('contenteditable') ||
+          (activeEl as HTMLElement).isContentEditable
+        ) {
+          return;
+        }
+      }
+
+      const modifier = e.metaKey || e.ctrlKey;
+      if (!modifier) return;
+
+      const key = e.key.toLowerCase();
+
+      if (key === 'c') {
+        if (!selectedCardId) return;
+        const cardToCopy = cards.find(c => c.id === selectedCardId);
+        if (cardToCopy) {
+          setCardClipboard({ card: cardToCopy, action: 'copy' });
+        }
+      } else if (key === 'x') {
+        if (!selectedCardId) return;
+        const cardToCut = cards.find(c => c.id === selectedCardId);
+        if (cardToCut) {
+          setCardClipboard({ card: cardToCut, action: 'cut' });
+        }
+      } else if (key === 'v') {
+        if (cardClipboard && activeBoardId) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          let x = 0;
+          let y = 0;
+          if (mouseRef.current.isOnCanvas) {
+            const canvasPos = screenToCanvas(mouseRef.current.x, mouseRef.current.y);
+            x = canvasPos.x;
+            y = canvasPos.y;
+          } else {
+            const pos = getViewportSpot();
+            x = pos.x;
+            y = pos.y;
+          }
+
+          const { card, action } = cardClipboard;
+          
+          if (action === 'copy') {
+            const newW = card.width ?? 280;
+            const newH = card.height ?? 200;
+            const resolved = findNonOverlappingPosition('__new__', x, y, newW, newH, cards);
+            try {
+              const newCard = await api.cards.create({
+                id: generateUUID(),
+                board_id: activeBoardId,
+                type: card.type,
+                x: resolved.x,
+                y: resolved.y,
+                width: newW,
+                height: newH,
+                is_locked: false,
+                title: `${card.title} (Copy)`,
+                content: card.content,
+                color: card.color,
+                url: card.url,
+                tags: card.tags,
+              } as any);
+              setCards(prev => [...prev, newCard]);
+              setAllCards(prev => [...prev, newCard]);
+              setSelectedCardId(newCard.id);
+            } catch (err) {
+              console.error('Failed to paste-copy card:', err);
+            }
+          } else if (action === 'cut') {
+            try {
+              await api.cards.update(card.id, {
+                board_id: activeBoardId,
+                x,
+                y,
+              } as any);
+              
+              if (card.boardId === activeBoardId) {
+                setCards(prev => prev.map(c => c.id === card.id ? { ...c, x, y } : c));
+                setAllCards(prev => prev.map(c => c.id === card.id ? { ...c, x, y } : c));
+              } else {
+                setCards(prev => prev.filter(c => c.id !== card.id));
+                setAllCards(prev => prev.map(c => c.id === card.id ? { ...c, boardId: activeBoardId, x, y } : c));
+              }
+
+              setCardClipboard(null);
+              setSelectedCardId(card.id);
+            } catch (err) {
+              console.error('Failed to paste-cut card:', err);
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedCardId, cards, cardClipboard, activeBoardId, screenToCanvas, getViewportSpot]);
 
   const createFolder = useCallback(async () => {
     if (!user) return;
@@ -402,6 +637,8 @@ export default function Home() {
             onCreateCard={createCard}
             onDeleteCard={deleteCard}
             onEditCard={(card, mode = 'preview') => { setEditingCard(card); setEditingCardMode(mode); }}
+            selectedCardId={selectedCardId}
+            onSelectCard={setSelectedCardId}
           />
         ) : (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexDirection: 'column', gap: 12 }}>

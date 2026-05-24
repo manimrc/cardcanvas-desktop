@@ -83,14 +83,15 @@ impl CardRepository {
     pub async fn update_card(&self, user_id: Uuid, id: Uuid, req: UpdateCardRequest, existing: &Card) -> Result<Card> {
         let updated = sqlx::query_as(
             r#"UPDATE cards SET
-                title = $1, url = $2, content = $3,
-                x = $4, y = $5, width = $6, height = $7,
-                color = $8, tags = $9, is_locked = $10,
+                board_id = $1, title = $2, url = $3, content = $4,
+                x = $5, y = $6, width = $7, height = $8,
+                color = $9, tags = $10, is_locked = $11,
                 updated_at = CURRENT_TIMESTAMP
-               WHERE id = $11 AND user_id = $12
+               WHERE id = $12 AND user_id = $13
                RETURNING id, user_id, board_id, type, title, url, content,
                          x, y, width, height, color, tags, is_locked, created_at, updated_at"#
         )
+        .bind(req.board_id.unwrap_or(existing.board_id))
         .bind(req.title.as_ref().or(existing.title.as_ref()))
         .bind(req.url.as_ref().or(existing.url.as_ref()))
         .bind(req.content.as_ref().or(existing.content.as_ref()))
