@@ -1,50 +1,82 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# OS generated files
 .DS_Store
-*.pem
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# debug
+# Node / Next.js (cardcanvas-v3)
+node_modules/
+.next/
+out/
+build/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
+.pnp.*
+.env*.local
 .vercel
-
-# typescript
 *.tsbuildinfo
-next-env.d.ts
 
-# databases
-/data
+# Rust / Cargo (cardcanvas-backend)
+/cardcanvas-backend/target/
+**/*.rs.bk
+Cargo.lock
+
+# Database / Media
+cardcanvas-backend/uploads/
+data/
+
+# Terraform (infrastructure / infrastructure-vm)
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Environment files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Archives and build artifacts
+*.tar.gz
+*.zip
+*.tgz
+*.rar
+*.tar
+target/
+dist/
+build/
+.next/
+node_modules/
+*.log
+
+# Plans
+plans/
+
+# SQLite database files
 *.db
-*.db-shm
 *.db-wal
+*.db-shm
+*.sqlite
 
-# electron
-/dist
+

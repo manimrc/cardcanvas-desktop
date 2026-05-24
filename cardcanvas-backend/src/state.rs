@@ -1,0 +1,53 @@
+use sqlx::SqlitePool;
+use std::sync::Arc;
+use crate::domain::auth::{repository::AuthRepository, service::AuthService};
+use crate::domain::cards::{repository::CardRepository, service::CardService};
+use crate::domain::workspaces::{repository::WorkspaceRepository, service::WorkspaceService};
+use crate::domain::whiteboards::{repository::WhiteboardRepository, service::WhiteboardService};
+use crate::domain::media::{repository::MediaRepository, service::MediaService};
+use crate::domain::journal::{repository::JournalRepository, service::JournalService};
+
+#[derive(Clone)]
+pub struct AppState {
+    pub db: SqlitePool,
+    pub jwt_secret: String,
+    pub auth_service: Arc<AuthService>,
+    pub card_service: Arc<CardService>,
+    pub workspace_service: Arc<WorkspaceService>,
+    pub whiteboard_service: Arc<WhiteboardService>,
+    pub media_service: Arc<MediaService>,
+    pub journal_service: Arc<JournalService>,
+}
+
+impl AppState {
+    pub fn new(db: SqlitePool, jwt_secret: String, media_dir: String) -> Self {
+        let auth_repo = AuthRepository::new(db.clone());
+        let auth_service = Arc::new(AuthService::new(auth_repo, jwt_secret.clone()));
+
+        let card_repo = CardRepository::new(db.clone());
+        let card_service = Arc::new(CardService::new(card_repo));
+
+        let workspace_repo = WorkspaceRepository::new(db.clone());
+        let workspace_service = Arc::new(WorkspaceService::new(workspace_repo));
+
+        let whiteboard_repo = WhiteboardRepository::new(db.clone());
+        let whiteboard_service = Arc::new(WhiteboardService::new(whiteboard_repo));
+
+        let media_repo = MediaRepository::new(db.clone());
+        let media_service = Arc::new(MediaService::new(media_repo, media_dir));
+
+        let journal_repo = JournalRepository::new(db.clone());
+        let journal_service = Arc::new(JournalService::new(journal_repo));
+
+        Self {
+            db,
+            jwt_secret,
+            auth_service,
+            card_service,
+            workspace_service,
+            whiteboard_service,
+            media_service,
+            journal_service,
+        }
+    }
+}
