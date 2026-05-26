@@ -2,7 +2,7 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Camera, X } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, resolveMediaUrl } from '@/lib/api';
 import MoodSelector from './MoodSelector';
 import ReflectionQuestions from './ReflectionQuestions';
 import JournalTodoList, { type TodoItem } from './JournalTodoList';
@@ -333,7 +333,7 @@ export default function JournalPage({ date, entry, onSave }: Props) {
               <div className="journal-photo-slot">
                 {comfortPhoto ? (
                   <div className="journal-photo-filled">
-                    <img src={comfortPhoto} alt="Comfort Memory" className="journal-photo-img" />
+                    <img src={resolveMediaUrl(comfortPhoto)} alt="Comfort Memory" className="journal-photo-img" />
                     <button
                       type="button"
                       className="journal-photo-remove"

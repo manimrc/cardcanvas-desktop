@@ -155,23 +155,48 @@ export const api = {
   // ---- Media ----
 
   media: {
-    upload: async (file: File): Promise<{ url: string; mimeType: string }> => {
-      const formData = new FormData();
-      formData.append('file', file);
+    upload: (
+      file: File,
+      onProgress?: (percent: number) => void
+    ): Promise<{ url: string; mimeType: string }> => {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${BASE_URL}/api/media/upload`);
+        xhr.withCredentials = true;
 
-      const res = await fetch(`${BASE_URL}/api/media/upload`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-        // Don't set Content-Type — browser sets multipart boundary automatically
+        if (onProgress) {
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              onProgress(percent);
+            }
+          };
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const res = JSON.parse(xhr.responseText);
+              resolve(res);
+            } catch (err) {
+              reject(new Error('Invalid response JSON'));
+            }
+          } else {
+            let errorMsg = 'Upload failed';
+            try {
+              const err = JSON.parse(xhr.responseText);
+              errorMsg = err.error || errorMsg;
+            } catch (_) {}
+            reject(new Error(errorMsg));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error'));
+
+        const formData = new FormData();
+        formData.append('file', file);
+        xhr.send(formData);
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || 'Upload failed');
-      }
-
-      return res.json();
     },
   },
 
@@ -201,3 +226,17 @@ export const api = {
       ),
   },
 };
+
+export function resolveMediaUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  const isTauri = typeof window !== 'undefined' && 
+    (window.location.protocol === 'tauri:' || (window as any).__TAURI_INTERNALS__ !== undefined);
+  if (isTauri) {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    return `${apiBase}${url}`;
+  }
+  return url;
+}

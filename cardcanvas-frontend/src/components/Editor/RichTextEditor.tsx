@@ -18,13 +18,14 @@ import Highlight from '@tiptap/extension-highlight';
 import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
+import { VoiceNote } from './VoiceNote';
 
 // Singleton lowlight instance with all common languages (JS, TS, Python, SQL,
 // YAML, JSON, Bash, Rust, Go, CSS, HTML, Markdown, and ~25 more)
 const lowlight = createLowlight(common);
 import { Card } from '@/types';
 import { CARD_COLORS } from '@/lib/constants';
-import { api } from '@/lib/api';
+import { api, resolveMediaUrl } from '@/lib/api';
 import { useAuth } from '@/components/AuthContext';
 import { getDesktopService } from '@/lib/desktop/desktopAdapter';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -32,8 +33,8 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading1, Heading2, Heading3, List, ListOrdered,
   Quote, Code, AlignLeft, AlignCenter, AlignRight,
-  Link as LinkIcon, Image as ImageIcon, Highlighter, X, Undo, Redo,
-  BookOpen, Minimize2, Table as TableIcon, Upload
+  Highlighter, X, Undo, Redo,
+  BookOpen, Minimize2, Table as TableIcon, Mic
 } from 'lucide-react';
 
 /** Heuristic: does this clipboard text look like markdown? */
@@ -158,7 +159,17 @@ const ResizableImage = TiptapImage.extend({
 
 function cleanContent(content: string): string {
   if (!content) return '';
-  const trimmed = content.trim();
+  let cleaned = content;
+  
+  // Resolve relative media paths in Tauri for the editor
+  const isTauri = typeof window !== 'undefined' && 
+    (window.location.protocol === 'tauri:' || (window as any).__TAURI_INTERNALS__ !== undefined);
+  if (isTauri) {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    cleaned = cleaned.replace(/src="\/api\/media\/files\//g, `src="${apiBase}/api/media/files/`);
+  }
+
+  const trimmed = cleaned.trim();
   if (
     trimmed === 'Start typing...' ||
     trimmed === '<p>Start typing...</p>' ||
@@ -167,22 +178,18 @@ function cleanContent(content: string): string {
   ) {
     return '';
   }
-  return content;
+  return cleaned;
 }
 
 export default function RichTextEditor({ card, mode = 'preview', onSave, onClose }: Props) {
   const { user } = useAuth();
   const [title, setTitle] = useState(card.title);
   const [color, setColor] = useState(card.color);
-  const [showLinkInput, setShowLinkInput] = useState(false);
-  const [showImageInput, setShowImageInput] = useState(false);
-  const [urlInput, setUrlInput] = useState('');
   const [url, setUrl] = useState(card.url || '');
   const [tagsInput, setTagsInput] = useState((card.tags || []).join(', '));
   const [contentUpdated, setContentUpdated] = useState(0);
   const [focusMode, setFocusMode] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const inlineImageInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
@@ -204,6 +211,7 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
       TableCell,
       TaskList,
       TaskItem.configure({ nested: true }),
+      VoiceNote,
     ],
     content: cleanContent(card.content || ''),
     immediatelyRender: false,
@@ -303,7 +311,12 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
       .split(',')
       .map(t => t.trim())
       .filter(Boolean);
-    const newContent = editor?.getHTML() || '';
+    let newContent = editor?.getHTML() || '';
+    
+    // Strip absolute base URL from media paths for database portability
+    const apiBase = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080') : 'http://localhost:8080';
+    const regex = new RegExp(`src="${apiBase.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}/api/media/files/`, 'g');
+    newContent = newContent.replace(regex, 'src="/api/media/files/');
     
     const hasChanges = 
       title !== card.title ||
@@ -375,43 +388,7 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
     }
   };
 
-  const handleInlineImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !editor) return;
-    const src = await uploadFile(file);
-    if (src) {
-      editor.chain().focus().setImage({ src }).run();
-    }
-  };
 
-  const submitLink = () => {
-    if (urlInput && editor) {
-      editor.chain().focus().setLink({ href: urlInput }).run();
-    }
-    setShowLinkInput(false);
-    setUrlInput('');
-  };
-
-  const submitImage = () => {
-    if (urlInput && editor) {
-      editor.chain().focus().setImage({ src: urlInput }).run();
-    }
-    setShowImageInput(false);
-    setUrlInput('');
-  };
-
-  const openLinkPrompt = () => {
-    setUrlInput('');
-    setShowImageInput(false);
-    setShowLinkInput(true);
-  };
-
-  const openImagePrompt = () => {
-    setUrlInput('');
-    setShowLinkInput(false);
-    setShowImageInput(true);
-  };
 
   if (!editor) return null;
 
@@ -452,9 +429,9 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
         </button>
         <div style={{ width: '90vw', height: '90vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
           {card.type === 'pdf' ? (
-            <iframe src={`${url}#view=FitH&pagemode=thumbs`} style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8, background: '#fff' }} title={title} />
+            <iframe src={`${resolveMediaUrl(url)}#view=FitH&pagemode=thumbs`} style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8, background: '#fff' }} title={title} />
           ) : (
-            <img src={url} alt={title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }} />
+            <img src={resolveMediaUrl(url)} alt={title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }} />
           )}
         </div>
       </div>
@@ -606,9 +583,20 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
           <button className={`editor-toolbar-btn${editor.isActive('blockquote') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleBlockquote().run()}><Quote size={15} /></button>
           <button className={`editor-toolbar-btn${editor.isActive('codeBlock') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleCodeBlock().run()}><Code size={15} /></button>
           <div className="editor-toolbar-divider" />
-          <button className={`editor-toolbar-btn${editor.isActive('link') ? ' active' : ''}`} onClick={openLinkPrompt}><LinkIcon size={15} /></button>
-          <button className="editor-toolbar-btn" onClick={openImagePrompt}><ImageIcon size={15} /></button>
-          <button className="editor-toolbar-btn" onClick={() => inlineImageInputRef.current?.click()} title="Upload image"><Upload size={15} /></button>
+          <button
+            className="editor-toolbar-btn"
+            onClick={() => {
+              if (editor && user) {
+                editor.chain().focus().insertContent({
+                  type: 'voiceNote',
+                  attrs: { src: '', duration: '00:00', userId: user.id }
+                }).run();
+              }
+            }}
+            title="Insert voice note reflection"
+          >
+            <Mic size={15} />
+          </button>
           <button className="editor-toolbar-btn" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} title="Insert table"><TableIcon size={15} /></button>
           <div className="editor-toolbar-divider" />
           <button className={`editor-toolbar-btn${editor.isActive({ textAlign: 'left' }) ? ' active' : ''}`} onClick={() => editor.chain().focus().setTextAlign('left').run()}><AlignLeft size={15} /></button>
@@ -618,29 +606,6 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
           <button className="editor-toolbar-btn" onClick={() => editor.chain().focus().undo().run()}><Undo size={15} /></button>
           <button className="editor-toolbar-btn" onClick={() => editor.chain().focus().redo().run()}><Redo size={15} /></button>
         </div>
-
-        {showLinkInput && (
-          <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '8px' }}>
-            <input className="inline-input" placeholder="Enter URL..." value={urlInput} onChange={e => setUrlInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLink()} autoFocus />
-            <button className="editor-save-btn" onClick={submitLink} style={{ padding: '4px 12px' }}>Apply</button>
-            <button className="editor-close-btn" onClick={() => setShowLinkInput(false)}><X size={14}/></button>
-          </div>
-        )}
-        {showImageInput && (
-          <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '8px' }}>
-            <input className="inline-input" placeholder="Enter image URL..." value={urlInput} onChange={e => setUrlInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitImage()} autoFocus />
-            <button className="editor-save-btn" onClick={submitImage} style={{ padding: '4px 12px' }}>Apply</button>
-            <button className="editor-close-btn" onClick={() => setShowImageInput(false)}><X size={14}/></button>
-          </div>
-        )}
-
-        <input
-          ref={inlineImageInputRef}
-          type="file"
-          hidden
-          accept="image/*"
-          onChange={handleInlineImageUpload}
-        />
 
         <div className="editor-content" style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <EditorContent editor={editor} />

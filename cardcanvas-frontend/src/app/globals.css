@@ -3645,4 +3645,293 @@ body {
   font-family: monospace;
 }
 
+/* ===== CUSTOM CONTEXTUAL VOICE-NOTE BLOCKS ===== */
+.voice-note-node {
+  margin: 16px 0;
+  display: block;
+}
+
+.voice-note-block {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  box-shadow: var(--shadow);
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  display: flex;
+  align-items: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.voice-note-block:hover {
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Empty / Setup state */
+.voice-note-empty {
+  padding: 14px 18px;
+}
+
+.voice-note-recording-setup {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.voice-note-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.2px;
+}
+
+.voice-note-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-note-setup-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease-in-out;
+}
+
+.voice-note-setup-btn:hover {
+  background: var(--bg-primary);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.voice-note-setup-btn.btn-danger {
+  color: var(--text-secondary);
+}
+
+.voice-note-setup-btn.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Recording active state */
+.voice-note-recording-active {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.voice-note-recording-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--danger);
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  animation: voice-note-pulse 1.2s infinite;
+  display: inline-block;
+}
+
+.voice-note-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.voice-note-action-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  background: var(--accent);
+  color: white;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.voice-note-action-circle:hover {
+  background: var(--accent-hover);
+  transform: scale(1.05);
+}
+
+.voice-note-action-circle:active {
+  transform: scale(0.95);
+}
+
+.voice-note-action-circle.bg-red-active {
+  background: var(--danger);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.voice-note-action-circle.bg-red-active:hover {
+  background: #dc2626;
+}
+
+.voice-note-action-circle .icon-white {
+  color: white;
+}
+
+/* Playback State */
+.voice-note-playback {
+  gap: 14px;
+  padding: 12px 18px;
+}
+
+.voice-note-progress-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.voice-note-time-info {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.voice-note-delete-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-in-out;
+}
+
+.voice-note-delete-btn:hover {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Custom Seekbar Styles */
+.voice-note-seekbar {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--border-light);
+  border-radius: 2px;
+  outline: none;
+  margin: 6px 0;
+  transition: background 0.15s ease-in-out;
+}
+
+.voice-note-seekbar:hover {
+  background: var(--border);
+}
+
+.voice-note-seekbar::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+}
+
+.voice-note-seekbar::-webkit-slider-thumb {
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -4px;
+  transition: transform 0.1s, background-color 0.15s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.voice-note-seekbar::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: var(--accent-hover);
+}
+
+.voice-note-seekbar::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+}
+
+.voice-note-seekbar::-moz-range-thumb {
+  height: 12px;
+  width: 12px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  transition: transform 0.1s, background-color 0.15s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.voice-note-seekbar::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  background: var(--accent-hover);
+}
+
+/* Pulsing Red Animation for recording active */
+@keyframes voice-note-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* Card Preview Voice Note (Rendered inside read-only list/grid blocks) */
+.card-body voice-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(124, 92, 252, 0.1);
+  border: 1px solid rgba(124, 92, 252, 0.2);
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: 4px 0;
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: none;
+  cursor: default;
+  line-height: 1.2;
+}
+
+.card-body voice-note::before {
+  content: "🎙️ Voice Note (" attr(duration) ")";
+}
+
+.light .card-body voice-note {
+  background: rgba(124, 92, 252, 0.06);
+  border-color: rgba(124, 92, 252, 0.15);
+}
+
 

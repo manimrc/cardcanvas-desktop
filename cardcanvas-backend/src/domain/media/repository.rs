@@ -33,4 +33,13 @@ impl MediaRepository {
         .await?;
         Ok(())
     }
+
+    pub async fn delete_media(&self, user_id: Uuid, storage_path: &str) -> Result<()> {
+        sqlx::query("DELETE FROM media WHERE user_id = $1 AND storage_path = $2")
+            .bind(user_id)
+            .bind(storage_path)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
 }

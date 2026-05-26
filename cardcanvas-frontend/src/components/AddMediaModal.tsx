@@ -17,6 +17,7 @@ export default function AddMediaModal({ open, onClose, onConfirm }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [uploadMime, setUploadMime] = useState<string | undefined>();
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const panelRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -24,6 +25,7 @@ export default function AddMediaModal({ open, onClose, onConfirm }: Props) {
     setUrl('');
     setPreview(null);
     setUploadMime(undefined);
+    setProgress(0);
   }, []);
 
   useEffect(() => {
@@ -34,9 +36,17 @@ export default function AddMediaModal({ open, onClose, onConfirm }: Props) {
 
   const handleFile = useCallback(async (file: File | null | undefined) => {
     if (!file || !user) return;
+
+    const kind = inferMediaType(file.name, file.type);
+    if (kind !== 'image' && kind !== 'pdf') {
+      alert('Unsupported file type. Only images and PDFs are supported.');
+      return;
+    }
+
     setUploading(true);
+    setProgress(0);
     try {
-      const result = await api.media.upload(file);
+      const result = await api.media.upload(file, (p) => setProgress(p));
       setUrl(result.url);
       setUploadMime(result.mimeType);
       setPreview(result.url);
@@ -114,9 +124,12 @@ export default function AddMediaModal({ open, onClose, onConfirm }: Props) {
 
         <div className="add-media-preview">
           {uploading ? (
-            <div className="add-media-preview-empty">
+            <div className="add-media-preview-empty" style={{ gap: 12 }}>
               <span className="auth-spinner" />
-              <span>Uploading…</span>
+              <span>Uploading {progress}%…</span>
+              <div style={{ width: 140, height: 6, background: 'rgba(0,0,0,0.1)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ width: `${progress}%`, height: '100%', background: 'var(--accent, #6366f1)', transition: 'width 0.1s ease-out' }} />
+              </div>
             </div>
           ) : preview && kind === 'image' ? (
             <img src={preview} alt="" className="add-media-preview-img" />
@@ -125,16 +138,7 @@ export default function AddMediaModal({ open, onClose, onConfirm }: Props) {
               <span className="add-media-preview-pdf-icon">📄</span>
               <span>PDF ready to add</span>
             </div>
-          ) : preview && kind === 'audio' ? (
-            <div className="add-media-preview-pdf">
-              <span className="add-media-preview-pdf-icon">🎵</span>
-              <span>Audio ready to add</span>
-            </div>
-          ) : preview && kind === 'video' ? (
-            <div className="add-media-preview-pdf">
-              <span className="add-media-preview-pdf-icon">🎥</span>
-              <span>Video ready to add</span>
-            </div>
+
           ) : url.trim() && kind === 'link' ? (
             <div className="add-media-preview-link">
               <Link2 size={22} />
@@ -145,7 +149,7 @@ export default function AddMediaModal({ open, onClose, onConfirm }: Props) {
           ) : (
             <div className="add-media-preview-empty">
               <Clipboard size={20} />
-              <span>Paste image, PDF, audio, video, or a link — or upload a file</span>
+              <span>Paste image, PDF, or a link — or upload a file</span>
             </div>
           )}
         </div>
@@ -170,7 +174,7 @@ export default function AddMediaModal({ open, onClose, onConfirm }: Props) {
         <button type="button" className="editor-save-btn add-media-upload-btn" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
           <Upload size={16} /> Upload file from computer
         </button>
-        <input ref={fileInputRef} type="file" hidden accept="image/*,application/pdf,.pdf,audio/*,video/*" onChange={e => void handleFile(e.target.files?.[0])} />
+        <input ref={fileInputRef} type="file" hidden accept="image/*,application/pdf,.pdf" onChange={e => void handleFile(e.target.files?.[0])} />
 
         <div className="add-media-actions">
           <button type="button" className="editor-save-btn add-media-cancel" onClick={onClose}>Cancel</button>

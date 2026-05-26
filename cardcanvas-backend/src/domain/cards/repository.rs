@@ -118,4 +118,13 @@ impl CardRepository {
             .await?;
         Ok(())
     }
+
+    pub async fn count_references_to_content(&self, user_id: Uuid, content: &str) -> Result<i64> {
+        let row: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM cards WHERE user_id = $1 AND content = $2")
+            .bind(user_id)
+            .bind(content)
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(row.0)
+    }
 }

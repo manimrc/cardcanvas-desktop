@@ -1,7 +1,7 @@
 'use client';
 import {
   Type, FileText, Search,
-  PanelLeft, Download, Moon, Sun
+  PanelLeft, Moon, Sun
 } from 'lucide-react';
 
 export type ToolbarMode = 'workspace' | 'tags';
@@ -12,7 +12,6 @@ interface Props {
   onBoardNameChange: (name: string) => void;
   onToggleSidebar: () => void;
   onAddCard?: (type: 'richtext' | 'media') => void;
-  onExport?: () => void;
   isLightMode?: boolean;
   onToggleTheme?: () => void;
   searchQuery?: string;
@@ -22,7 +21,7 @@ interface Props {
 export default function Toolbar({
   mode = 'workspace',
   boardName, onBoardNameChange, onToggleSidebar,
-  onAddCard, onExport, isLightMode, onToggleTheme,
+  onAddCard, isLightMode, onToggleTheme,
   searchQuery, onSearchChange
 }: Props) {
   const tagsMode = mode === 'tags';
@@ -69,11 +68,7 @@ export default function Toolbar({
       <button type="button" className="toolbar-btn" onClick={onToggleTheme} title="Toggle Theme">
         {isLightMode ? <Moon size={14} /> : <Sun size={14} />}
       </button>
-      {!tagsMode && onExport ? (
-        <button type="button" className="toolbar-btn" onClick={onExport} title="Download visible board as PNG">
-          <Download size={14} />
-        </button>
-      ) : null}
+
     </div>
   );
 }

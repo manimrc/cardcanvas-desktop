@@ -1,4 +1,4 @@
-export type CardType = 'richtext' | 'link' | 'image' | 'pdf' | 'article' | 'audio' | 'video';
+export type CardType = 'richtext' | 'link' | 'image' | 'pdf' | 'article';
 
 export interface Card {
   id: string;

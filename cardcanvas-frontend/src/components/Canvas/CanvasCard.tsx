@@ -1,13 +1,11 @@
 'use client';
 import { Card as CardType } from '@/types';
 import { CARD_COLORS } from '@/lib/constants';
+import { resolveMediaUrl } from '@/lib/api';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { Maximize2, MoreHorizontal } from 'lucide-react';
-import AudioPlayer from './AudioPlayer';
-import VideoPlayer from './VideoPlayer';
-
 const TYPE_EMOJI: Record<string, string> = {
-  richtext: '📝', link: '🔗', image: '🖼️', pdf: '📄', article: '📰', audio: '🎵', video: '🎥',
+  richtext: '📝', link: '🔗', image: '🖼️', pdf: '📄', article: '📰',
 };
 interface Props {
   card: CardType;
@@ -121,7 +119,17 @@ function PdfThumbnail({ url, title }: { url?: string; title: string }) {
 
 function cleanContent(content: string): string {
   if (!content) return '';
-  const trimmed = content.trim();
+  let cleaned = content;
+  
+  // Resolve relative media paths in Tauri for previews
+  const isTauri = typeof window !== 'undefined' && 
+    (window.location.protocol === 'tauri:' || (window as any).__TAURI_INTERNALS__ !== undefined);
+  if (isTauri) {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    cleaned = cleaned.replace(/src="\/api\/media\/files\//g, `src="${apiBase}/api/media/files/`);
+  }
+
+  const trimmed = cleaned.trim();
   if (
     trimmed === 'Start typing...' ||
     trimmed === '<p>Start typing...</p>' ||
@@ -130,7 +138,7 @@ function cleanContent(content: string): string {
   ) {
     return '';
   }
-  return content;
+  return cleaned;
 }
 
 export default function CanvasCard({
@@ -273,6 +281,57 @@ export default function CanvasCard({
   }, [card.id, card.width, card.height, scale, onResize]);
 
   const renderBody = () => {
+    if (card.id.startsWith('temp-')) {
+      const progressPercent = parseInt(card.content) || 0;
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          padding: 16,
+          background: 'rgba(255,255,255,0.7)',
+          backdropFilter: 'blur(5px)',
+          borderRadius: 8,
+          gap: 12
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              width: 16,
+              height: 16,
+              border: '2px solid rgba(0,0,0,0.1)',
+              borderTop: '2px solid var(--accent, #6366f1)',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }} />
+            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Uploading media...</span>
+          </div>
+          <div style={{
+            width: '100%',
+            height: 8,
+            background: 'rgba(0,0,0,0.1)',
+            borderRadius: 4,
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${progressPercent}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #6366f1, #a855f7)',
+              transition: 'width 0.2s ease-out'
+            }} />
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>{progressPercent}%</span>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      );
+    }
+
     switch (card.type) {
       case 'link':
         return (
@@ -284,33 +343,18 @@ export default function CanvasCard({
       case 'image':
         return (
           <div className="card-image-container" style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
-            {card.url ? <img src={card.url} alt={card.title} style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', display: 'block' }} /> : <div className="card-body" dangerouslySetInnerHTML={{ __html: card.content }} />}
+            {card.url ? <img src={resolveMediaUrl(card.url)} alt={card.title} style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', display: 'block' }} /> : <div className="card-body" dangerouslySetInnerHTML={{ __html: card.content }} />}
           </div>
         );
       case 'pdf':
         return (
           <div className="card-pdf-container">
-            <PdfThumbnail url={card.url} title={card.title || 'PDF Document'} />
+            <PdfThumbnail url={resolveMediaUrl(card.url)} title={card.title || 'PDF Document'} />
             <div className="card-pdf-title">{card.title || 'PDF Document'}</div>
             <div className="card-pdf-hint">Double-click to view</div>
           </div>
         );
-      case 'audio':
-        return <AudioPlayer url={card.url || ''} title={card.title || 'Audio Note'} />;
-      case 'video':
-        return (
-          <VideoPlayer
-            url={card.url || ''}
-            thumbnailUrl={card.content || ''}
-            cardId={card.id}
-            title={card.title || 'Video Note'}
-            onUpdateThumbnail={(thumbUrl) => {
-              if (onUpdateCard) {
-                onUpdateCard({ id: card.id, content: thumbUrl });
-              }
-            }}
-          />
-        );
+
       case 'article':
         return <div className="card-body" dangerouslySetInnerHTML={{ __html: card.content }} />;
       default: {

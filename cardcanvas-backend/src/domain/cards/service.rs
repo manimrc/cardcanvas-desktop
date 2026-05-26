@@ -37,4 +37,12 @@ impl CardService {
     pub async fn delete_card(&self, user_id: Uuid, id: Uuid) -> Result<()> {
         self.repo.delete_card(user_id, id).await
     }
+
+    pub async fn get_card(&self, user_id: Uuid, id: Uuid) -> Result<Option<Card>> {
+        self.repo.get_card(user_id, id).await
+    }
+
+    pub async fn count_references_to_content(&self, user_id: Uuid, content: &str) -> Result<i64> {
+        self.repo.count_references_to_content(user_id, content).await
+    }
 }

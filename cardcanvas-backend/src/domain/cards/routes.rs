@@ -66,6 +66,22 @@ async fn delete_card(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
     let uid: Uuid = claims.sub.parse().map_err(|_| AppError::Unauthorized)?;
-    state.card_service.delete_card(uid, id).await?;
+
+    let card_opt = state.card_service.get_card(uid, id).await?;
+    
+    if let Some(card) = card_opt {
+        state.card_service.delete_card(uid, id).await?;
+
+        if let Some(content) = &card.content {
+            if content.starts_with("/api/media/files/") {
+                let other_ref_count = state.card_service.count_references_to_content(uid, content).await?;
+                if other_ref_count == 0 {
+                    let storage_path = &content["/api/media/files/".len()..];
+                    let _ = state.media_service.delete_file(uid, storage_path).await;
+                }
+            }
+        }
+    }
+
     Ok(Json(serde_json::json!({ "success": true })))
 }

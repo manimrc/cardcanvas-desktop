@@ -171,8 +171,6 @@ export default function Home() {
       image:    { title: 'New Image', content: '<p>Add an image URL</p>', color: '#C8E6C9' },
       pdf:      { title: 'PDF Document', content: '', color: '#FFE0B2' },
       article:  { title: 'Clipped Article', content: '<p>Paste article content...</p>', color: '#E1BEE7' },
-      audio:    { title: 'Audio Card', content: '', color: '#ECEFF1', width: 320, height: 100 },
-      video:    { title: 'Video Card', content: '', color: '#ECEFF1', width: 400, height: 280 },
     };
     const d = defaults[type] || defaults.richtext;
     if (url) d.url = url;
@@ -195,8 +193,10 @@ export default function Home() {
       } as any);
       setCards(prev => [...prev, card]);
       setAllCards(prev => [...prev, card]);
+      return card;
     } catch (err) {
       console.error('Failed to create card:', err);
+      return undefined;
     }
   }, [user, activeBoardId, cards]);
 
@@ -291,17 +291,53 @@ export default function Home() {
         e.preventDefault();
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          try {
-            const result = await api.media.upload(file);
-            const inferredType = inferMediaType(result.url, result.mimeType);
-            
-            const cardX = x + i * 24;
-            const cardY = y + i * 24;
-            
-            await createCard(inferredType, cardX, cardY, result.url);
-          } catch (err) {
-            console.error('Failed to upload pasted file:', err);
+          const inferredType = inferMediaType(file.name, file.type);
+          if (inferredType !== 'image' && inferredType !== 'pdf') {
+            continue; // Skip unsupported video, audio, or other files
           }
+
+          const cardX = x + i * 24;
+          const cardY = y + i * 24;
+          const tempId = `temp-${generateUUID()}`;
+
+          const tempCard: Card = {
+            id: tempId,
+            boardId: activeBoardId || '',
+            type: inferredType,
+            title: `Uploading ${file.name}...`,
+            content: '0',
+            url: '',
+            x: cardX,
+            y: cardY,
+            width: 280,
+            height: 200,
+            color: '#ECEFF1',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          // Render placeholder progress card immediately
+          setCards(prev => [...prev, tempCard]);
+          setAllCards(prev => [...prev, tempCard]);
+
+          // Upload asynchronously in background without blocking other files
+          (async () => {
+            try {
+              const result = await api.media.upload(file, (percent) => {
+                setCards(prev => prev.map(c => c.id === tempId ? { ...c, content: String(percent) } : c));
+                setAllCards(prev => prev.map(c => c.id === tempId ? { ...c, content: String(percent) } : c));
+              });
+
+              const realType = inferMediaType(result.url, result.mimeType);
+              await createCard(realType, cardX, cardY, result.url);
+            } catch (err) {
+              console.error('Failed to upload pasted file:', err);
+            } finally {
+              // Always clean up the temporary placeholder card
+              setCards(prev => prev.filter(c => c.id !== tempId));
+              setAllCards(prev => prev.filter(c => c.id !== tempId));
+            }
+          })();
         }
         return;
       }
@@ -519,23 +555,7 @@ export default function Home() {
     }
   }, [activeBoardId, renameBoard]);
 
-  const exportBoardPng = useCallback(async () => {
-    if (!activeBoardId) return;
-    const host = workspaceCanvasRef.current?.getScrollContainer();
-    if (!host) return;
-    try {
-      const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(host, {
-        scale: 2, useCORS: true, allowTaint: true, logging: false,
-        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim() || '#0f0f13',
-      });
-      const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png');
-      const safe = (activeBoard?.name || 'board').replace(/[^\w\-]+/g, '_').slice(0, 60);
-      a.download = `${safe || 'board'}.png`;
-      a.click();
-    } catch (err) { console.error('Export failed:', err); }
-  }, [activeBoardId, activeBoard?.name]);
+
 
   if (loading) {
     return (
@@ -597,7 +617,6 @@ export default function Home() {
                 setMediaModalOpen(true);
               }
             }}
-            onExport={tagsToolbar ? undefined : exportBoardPng}
             isLightMode={isLightMode}
             onToggleTheme={() => setIsLightMode(!isLightMode)}
             searchQuery={searchQuery}

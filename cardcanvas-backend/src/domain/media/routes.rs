@@ -39,10 +39,7 @@ async fn upload_media(
             .unwrap_or("application/octet-stream")
             .to_string();
 
-        let data = field.bytes().await
-            .map_err(|e| AppError::BadRequest(e.to_string()))?;
-
-        let response = state.media_service.save_file(uid, filename, mime_type, data.to_vec()).await?;
+        let response = state.media_service.save_file_stream(uid, filename, mime_type, field).await?;
         
         return Ok(Json(response));
     }

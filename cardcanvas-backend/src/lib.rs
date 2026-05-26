@@ -48,6 +48,7 @@ pub async fn start_axum_server(state: AppState) -> anyhow::Result<()> {
         .nest("/api", routes::api_router())
         .layer(cors)
         .layer(TraceLayer::new_for_http())
+        .layer(axum::extract::DefaultBodyLimit::disable())
         .with_state(state);
 
     let port: u16 = std::env::var("PORT")
