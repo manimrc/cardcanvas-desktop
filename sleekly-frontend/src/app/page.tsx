@@ -543,10 +543,11 @@ export default function Home() {
   const renameBoard = useCallback(async (id: string, name: string) => {
     if (!user) return;
     try {
-      await api.workspace.renameBoard(id, name);
+      const board = boards.find(b => b.id === id);
+      await api.workspace.renameBoard(id, name, board?.folderId);
       fetchTree();
     } catch (err) { console.error(err); }
-  }, [user, fetchTree]);
+  }, [user, boards, fetchTree]);
 
   const handleBoardNameChange = useCallback((name: string) => {
     if (activeBoardId) {
