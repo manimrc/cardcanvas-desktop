@@ -1,12 +1,12 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting Deployment & Packaging for CardCanvas Desktop v2..."
+echo "🚀 Starting Deployment & Packaging for Sleekly Desktop v2..."
 
 # 1. Ensure we are in the correct directory (project root or scripts)
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( dirname "$SCRIPT_DIR" )"
-FRONTEND_DIR="$PROJECT_ROOT/cardcanvas-frontend"
+FRONTEND_DIR="$PROJECT_ROOT/sleekly-frontend"
 
 echo "📂 Project Directory: $PROJECT_ROOT"
 

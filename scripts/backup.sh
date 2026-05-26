@@ -1,31 +1,31 @@
 #!/bin/bash
 set -e
 
-# Backup script for CardCanvas Desktop v2
+# Backup script for Sleekly Desktop v2
 # Saves local SQLite database and user media files into a compressed backup archive
 
 TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
-BACKUP_PARENT_DIR="$HOME/cardcanvas-backups"
+BACKUP_PARENT_DIR="$HOME/sleekly-backups"
 BACKUP_DIR="$BACKUP_PARENT_DIR/backup_$TIMESTAMP"
-ARCHIVE_FILE="$BACKUP_PARENT_DIR/cardcanvas_backup_$TIMESTAMP.tar.gz"
+ARCHIVE_FILE="$BACKUP_PARENT_DIR/sleekly_backup_$TIMESTAMP.tar.gz"
 
-echo "💾 Starting CardCanvas Desktop v2 Backup..."
+echo "💾 Starting Sleekly Desktop v2 Backup..."
 
 # 1. Resolve OS-specific App Data Directory
-# Under macOS: ~/Library/Application Support/com.cardcanvas.desktop.v2
-# Under Linux: ~/.local/share/com.cardcanvas.desktop.v2
+# Under macOS: ~/Library/Application Support/com.sleekly.desktop.v2
+# Under Linux: ~/.local/share/com.sleekly.desktop.v2
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    APP_DATA_DIR="$HOME/Library/Application Support/com.cardcanvas.desktop.v2"
+    APP_DATA_DIR="$HOME/Library/Application Support/com.sleekly.desktop.v2"
 else
-    APP_DATA_DIR="$HOME/.local/share/com.cardcanvas.desktop.v2"
+    APP_DATA_DIR="$HOME/.local/share/com.sleekly.desktop.v2"
 fi
 
-DB_FILE="$APP_DATA_DIR/db/cardcanvas.db"
+DB_FILE="$APP_DATA_DIR/db/sleekly.db"
 MEDIA_DIR="$APP_DATA_DIR/media"
 
 # 2. Check if local app data exists
 if [ ! -d "$APP_DATA_DIR" ]; then
-    echo "⚠️ Warning: CardCanvas local App Data directory not found."
+    echo "⚠️ Warning: Sleekly local App Data directory not found."
     echo "Path checked: $APP_DATA_DIR"
     echo "Have you run the application yet?"
     exit 1
@@ -42,14 +42,14 @@ mkdir -p "$BACKUP_DIR"
 # 4. Copy local database (if exists)
 if [ -f "$DB_FILE" ]; then
     echo "📝 Backing up SQLite database..."
-    cp "$DB_FILE" "$BACKUP_DIR/cardcanvas.db"
+    cp "$DB_FILE" "$BACKUP_DIR/sleekly.db"
     
     # Also backup WAL files if present to ensure data consistency
     if [ -f "${DB_FILE}-wal" ]; then
-        cp "${DB_FILE}-wal" "$BACKUP_DIR/cardcanvas.db-wal"
+        cp "${DB_FILE}-wal" "$BACKUP_DIR/sleekly.db-wal"
     fi
     if [ -f "${DB_FILE}-shm" ]; then
-        cp "${DB_FILE}-shm" "$BACKUP_DIR/cardcanvas.db-shm"
+        cp "${DB_FILE}-shm" "$BACKUP_DIR/sleekly.db-shm"
     fi
 else
     echo "⚠️ SQLite database file not found. Skipping DB backup."

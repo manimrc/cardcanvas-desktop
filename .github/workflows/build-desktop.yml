@@ -31,7 +31,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: cardcanvas-frontend/package-lock.json
+          cache-dependency-path: sleekly-frontend/package-lock.json
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -46,7 +46,7 @@ jobs:
 
       - name: Install frontend dependencies
         run: |
-          cd cardcanvas-frontend
+          cd sleekly-frontend
           npm ci
 
       - name: Build and Release Tauri app
@@ -54,9 +54,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: './cardcanvas-frontend'
+          projectPath: './sleekly-frontend'
           tagName: v__VERSION__
-          releaseName: 'CardCanvas v__VERSION__'
+          releaseName: 'Sleekly v__VERSION__'
           releaseBody: 'See the assets to download this version and install.'
           releaseDraft: true
           prerelease: false

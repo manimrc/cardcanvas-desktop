@@ -1,14 +1,14 @@
-# CardCanvas Desktop v2
+# Sleekly Desktop v2
 
-CardCanvas Desktop v2 is a modern, offline-first, native enterprise visual workspace for organizing cards, notes, links, and media on an infinite canvas. It is powered by **Tauri v2**, **Next.js**, and an **embedded Rust Axum backend** running an **embedded SQLite database**.
+Sleekly Desktop v2 is a modern, offline-first, native enterprise visual workspace for organizing cards, notes, links, and media on an infinite canvas. It is powered by **Tauri v2**, **Next.js**, and an **embedded Rust Axum backend** running an **embedded SQLite database**.
 
-Unlike traditional web-wrapped shells, CardCanvas Desktop v2 runs the entire application stack locally on your computer—requiring zero Docker configuration, zero external databases, and zero server hosting.
+Unlike traditional web-wrapped shells, Sleekly Desktop v2 runs the entire application stack locally on your computer—requiring zero Docker configuration, zero external databases, and zero server hosting.
 
 ---
 
 ## 🛠️ Architecture
 
-CardCanvas Desktop v2 uses a native multi-threaded architecture:
+Sleekly Desktop v2 uses a native multi-threaded architecture:
 
 1. **Frontend**: Next.js 16 (React) client-side SPA served directly inside Tauri's high-performance native OS webview.
 2. **Embedded Backend**: High-performance Rust API server using Axum, running in a background thread spawned within Tauri's application lifecycle.
@@ -29,13 +29,13 @@ Tauri Desktop App
 
 ```text
 .
-├── cardcanvas-frontend/    # Next.js Frontend
+├── sleekly-frontend/       # Next.js Frontend
 │   ├── src-tauri/          # Tauri v2 native desktop wrapper (Rust)
 │   │   ├── src/lib.rs      # Tauri app lifecycle & native command handlers
 │   │   └── tauri.conf.json # Tauri window, build, and package config
 │   ├── src/                # Next.js react pages, components, adapters
 │   └── package.json        # Frontend & Tauri scripts
-├── cardcanvas-backend/     # Rust Axum backend (as a library & standalone CLI)
+├── sleekly-backend/        # Rust Axum backend (as a library & standalone CLI)
 │   ├── src/
 │   │   ├── domain/         # Modular Business Domains (Auth, Cards, Workspaces, etc.)
 │   │   ├── db.rs           # SQLite pool creation and WAL options
@@ -60,7 +60,7 @@ Ensure you have the following installed on your machine:
 ### 2. Startup Command
 Navigate to the frontend folder, install npm packages, and start the Tauri development loop:
 ```bash
-cd cardcanvas-frontend
+cd sleekly-frontend
 npm install
 npm run tauri dev
 ```
@@ -69,9 +69,9 @@ Tauri will:
 - Spin up the Next.js frontend dev server on `http://localhost:3000`.
 - Compile the Rust backend code.
 - Automatically resolve your OS App Data folder:
-  - **macOS**: `~/Library/Application Support/com.cardcanvas.desktop.v2/`
-  - **Linux**: `~/.local/share/com.cardcanvas.desktop.v2/`
-- Create `/db/cardcanvas.db` and `/media/` directories inside the App Data path.
+  - **macOS**: `~/Library/Application Support/com.sleekly.desktop.v2/`
+  - **Linux**: `~/.local/share/com.sleekly.desktop.v2/`
+- Create `/db/sleekly.db` and `/media/` directories inside the App Data path.
 - Run database migrations on SQLite.
 - Start the Axum API server in the background on port `8080`.
 - Launch the native desktop window.
@@ -80,7 +80,7 @@ Tauri will:
 
 ## 📦 Packaging and Builds
 
-To bundle CardCanvas Desktop v2 into an installable native installer (e.g. `.dmg` or `.app` on macOS, `.msi` on Windows):
+To bundle Sleekly Desktop v2 into an installable native installer (e.g. `.dmg` or `.app` on macOS, `.msi` on Windows):
 
 Run the deploy/packaging script:
 ```bash
@@ -88,24 +88,24 @@ Run the deploy/packaging script:
 ```
 Or build directly via npm:
 ```bash
-cd cardcanvas-frontend
+cd sleekly-frontend
 npm run tauri build
 ```
 The output installers will be compiled and placed in:
-`cardcanvas-frontend/src-tauri/target/release/bundle/`
+`sleekly-frontend/src-tauri/target/release/bundle/`
 
 ---
 
 ## 💾 Local Backups
 
-Since CardCanvas is fully offline-first, your database and media files are stored locally. To backup your visual boards, cards, and media:
+Since Sleekly is fully offline-first, your database and media files are stored locally. To backup your visual boards, cards, and media:
 
 Run the backup script:
 ```bash
 ./scripts/backup.sh
 ```
 The script will stagelessly copy your local SQLite database and media folders from your system's Application Support path, compress them, and save the archive into:
-`~/cardcanvas-backups/cardcanvas_backup_[timestamp].tar.gz`
+`~/sleekly-backups/sleekly_backup_[timestamp].tar.gz`
 
 ---
 
