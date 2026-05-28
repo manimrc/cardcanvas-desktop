@@ -2584,7 +2584,7 @@ body {
 .journal-card-pinkbar {
   background: var(--journal-pinkbar);
   border-color: var(--journal-pink-border);
-  padding: 12px 20px;
+  padding: 6px 20px;
 }
 .journal-card-title {
   font-size: 15px;
@@ -2778,13 +2778,13 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
-  border-radius: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
   border: 1.5px solid transparent;
   background: rgba(255,255,255,0.5);
   color: var(--journal-text);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -2814,7 +2814,7 @@ body {
   100% { transform: scale(1); }
 }
 .journal-reflection-icon {
-  font-size: 16px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 .journal-reflection-label {
@@ -2822,14 +2822,14 @@ body {
   text-align: left;
 }
 .journal-reflection-check {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: rgba(0,0,0,0.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: #4caf50;
   flex-shrink: 0;
@@ -3094,7 +3094,20 @@ body {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-bottom: 16px;
+  padding: 8px 16px;
+}
+.journal-header-quote .journal-page-date {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 0;
+  text-align: left;
+}
+.journal-header-quote .journal-page-day {
+  font-size: 20px;
+}
+.journal-header-quote .journal-page-datestr {
+  margin-top: 0;
 }
 .journal-quote-center {
   flex: 1;
@@ -3154,7 +3167,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  height: 100%;
+  min-height: 100%;
 }
 .journal-flex-card {
   flex: 1;
@@ -3173,7 +3186,7 @@ body {
 .journal-todo-card-wrap {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 100%;
 }
 
 /* ===== SMALLER MOOD SELECTOR ===== */

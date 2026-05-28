@@ -433,7 +433,7 @@ export default function JournalPage({ date, entry, onSave }: Props) {
           <div className="journal-card journal-card-pinkbar">
             <input
               className="journal-tinywin-input"
-              placeholder="my tiny win of the day ✨ …"
+              placeholder="My tiny win of the day ✨ …"
               value={tinyWin}
               onChange={e => updateWin(e.target.value)}
               id="journal-tiny-win"
