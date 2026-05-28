@@ -21,7 +21,7 @@ pub struct User {
 pub struct RegisterRequest {
     #[validate(length(min = 3, max = 50))]
     pub username: String,
-    #[validate(length(min = 8))]
+    #[validate(length(min = 4))]
     pub password: String,
     #[validate(length(max = 100))]
     pub display_name: Option<String>,
@@ -47,6 +47,6 @@ pub struct ResetPasswordRequest {
     #[validate(length(min = 1))]
     pub username: String,
     pub recovery_code: String,
-    #[validate(length(min = 8))]
+    #[validate(length(min = 4))]
     pub new_password: String,
 }
