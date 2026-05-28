@@ -111,6 +111,6 @@ The script will stagelessly copy your local SQLite database and media folders fr
 
 ## 🔐 Security & Desktop Best Practices
 
-- **Single-Session Secrets**: The backend JWT secret is generated as a secure, random UUID on app startup. It is stored in memory and refreshed each time the app is launched.
+- **Persistent JWT Secret**: To prevent session invalidation on app restart or recompile, the JWT secret key is securely generated and persisted in a `jwt.secret` file inside the user's platform-specific App Data directory.
 - **Strict CORS Origin Lock**: The Axum backend is locked down to only accept HTTP requests initiated from Tauri's native webview protocol origins (`tauri://localhost` and `http://tauri.localhost`), preventing other local desktop apps from accessing your API.
 - **WAL Journaling**: The SQLite database uses Write-Ahead Logging to enable safe, fast write operations from the application while keeping UI threads smooth and fluid.
