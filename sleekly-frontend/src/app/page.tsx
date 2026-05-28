@@ -259,6 +259,8 @@ export default function Home() {
 
   const handlePaste = useCallback(
     async (e: ClipboardEvent) => {
+      if (editingCard || mediaModalOpen) return;
+
       const activeEl = document.activeElement;
       if (activeEl) {
         const tagName = activeEl.tagName.toLowerCase();
@@ -374,7 +376,7 @@ export default function Home() {
         }
       }
     },
-    [user, activeBoardId, cards, getViewportSpot, createCard, screenToCanvas]
+    [user, activeBoardId, cards, getViewportSpot, createCard, screenToCanvas, editingCard, mediaModalOpen]
   );
 
   useEffect(() => {

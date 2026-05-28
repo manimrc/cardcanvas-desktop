@@ -183,6 +183,17 @@ function cleanContent(content: string): string {
 
 export default function RichTextEditor({ card, mode = 'preview', onSave, onClose }: Props) {
   const { user } = useAuth();
+
+  const uploadFile = useCallback(async (file: File): Promise<string | null> => {
+    if (!file || !user) return null;
+    try {
+      return await getDesktopService().uploadMedia(file, user.id);
+    } catch (err) {
+      console.error('Upload failed', err);
+      return null;
+    }
+  }, [user]);
+
   const [title, setTitle] = useState(card.title);
   const [color, setColor] = useState(card.color);
   const [url, setUrl] = useState(card.url || '');
@@ -252,6 +263,43 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
       },
     },
   });
+
+  // Dynamically update handlePaste and handleDrop to prevent stale closure bugs in useEditor
+  useEffect(() => {
+    if (!editor) return;
+    editor.setOptions({
+      editorProps: {
+        handlePaste: (view, event) => {
+          const file = Array.from(event.clipboardData?.files || []).find(f => f.type.startsWith('image/'));
+          if (file && user) {
+            event.preventDefault();
+            void uploadFile(file).then(src => {
+              if (!src) return;
+              const { state, dispatch } = view;
+              const node = state.schema.nodes.image?.create({ src });
+              if (node) dispatch(state.tr.replaceSelectionWith(node).scrollIntoView());
+            });
+            return true;
+          }
+          return false;
+        },
+        handleDrop: (view, event) => {
+          const file = Array.from(event.dataTransfer?.files || []).find(f => f.type.startsWith('image/'));
+          if (!file || !user) return false;
+          event.preventDefault();
+          void uploadFile(file).then(src => {
+            if (!src) return;
+            const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+            const node = view.state.schema.nodes.image?.create({ src });
+            if (coordinates && node) {
+              view.dispatch(view.state.tr.insert(coordinates.pos, node).scrollIntoView());
+            }
+          });
+          return true;
+        },
+      },
+    });
+  }, [editor, user, uploadFile]);
 
   // Markdown paste: attach native DOM listener on the editor element so we
   // have direct access to both the clipboard text AND the TipTap editor instance.
@@ -368,16 +416,6 @@ export default function RichTextEditor({ card, mode = 'preview', onSave, onClose
   }, [autoSave, handleClose, focusMode]);
 
 
-
-  const uploadFile = useCallback(async (file: File): Promise<string | null> => {
-    if (!file || !user) return null;
-    try {
-      return await getDesktopService().uploadMedia(file, user.id);
-    } catch (err) {
-      console.error('Upload failed', err);
-      return null;
-    }
-  }, [user]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
