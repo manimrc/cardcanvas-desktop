@@ -301,7 +301,7 @@ export default function JournalPage({ date, entry, onSave }: Props) {
         <div className="journal-page-inner">
 
           {/* Topmost header: Date & Quotes */}
-          <div className="journal-header-quote">
+          <div className="journal-card journal-card-neutral journal-header-quote">
             <div className="journal-page-date">
               <div className="journal-page-day">{dayName},</div>
               <div className="journal-page-datestr">{dateDisplay}</div>
