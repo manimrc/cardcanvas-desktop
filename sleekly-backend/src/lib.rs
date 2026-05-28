@@ -56,7 +56,7 @@ pub async fn start_axum_server(state: AppState) -> anyhow::Result<()> {
         .and_then(|p| p.parse().ok())
         .unwrap_or(8080);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    let addr = SocketAddr::from(([127, 0, 0, 1], port));
     tracing::info!("Sleekly backend listening on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
