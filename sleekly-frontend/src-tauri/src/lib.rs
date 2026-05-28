@@ -41,8 +41,15 @@ pub fn run() {
       let database_url = format!("sqlite://{}", db_path.to_str().expect("invalid database path"));
       let media_dir_str = media_dir.to_str().expect("invalid media directory path").to_string();
 
-      // 4. Generate a secure, single-session JWT secret
-      let jwt_secret = Uuid::new_v4().to_string();
+      // 4. Get or create a persistent JWT secret (so sessions remain valid across restarts and recompiles)
+      let secret_path = app_data_dir.join("jwt.secret");
+      let jwt_secret = if secret_path.exists() {
+          std::fs::read_to_string(&secret_path).unwrap_or_else(|_| Uuid::new_v4().to_string())
+      } else {
+          let new_secret = Uuid::new_v4().to_string();
+          let _ = std::fs::write(&secret_path, &new_secret);
+          new_secret
+      };
 
       println!("Initializing local Sleekly database at: {}", db_path.display());
       println!("Local media uploads stored at: {}", media_dir.display());
